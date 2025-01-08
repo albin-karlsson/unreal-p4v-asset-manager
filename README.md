@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 # Wormhole v1.0
 
 ## Overview
@@ -28,6 +27,3 @@ Before using the tool, make sure you have the following installed:
 4. **Get perforce workspaces**: Double check that you have filled in your Perforce username and password and then get all Perforce workspaces by clicking the **Get workspaces** button. 
 5. **Export assets**: Click the **Export assets** button.
 6. **Wait for the process**: A **Command prompt** window will appear while the script for converting all PNG files to DDS format. Just **press Enter** when prompted to proceed. The tool will automatically export all meshes and textures from Unreal and push them to Perforce.
-=======
-# unreal-p4v-asset-manager
->>>>>>> 5d6d5eac6d0f5ad5e24978277f4390672a9de6bb
