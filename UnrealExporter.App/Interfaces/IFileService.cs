@@ -8,10 +8,10 @@ namespace UnrealExporter.App.Interfaces
         List<string> ExportedFiles { get; set; }
 
         bool CheckExistingOutputDirectory();
-        void ConvertTextures(AppConfig appConfig);
-        bool[] GetAndSetSelectedFilesFileTypes(string[] selectedFiles);
-        void MoveDirectories(string[] filesToExport, AppConfig appConfig);
-        List<string> CheckDestinationDirectoryContent(AppConfig appConfig);
+        void ConvertTextures();
+        (bool exportMeshes, bool exportTextures) GetAndSetSelectedFilesFileTypes(string[] selectedFiles);
+        void MoveDirectories(string[] filesToExport);
+        List<string> CheckDestinationDirectoryForExistingFiles();
 
         string[] GetExportedFiles();
     }

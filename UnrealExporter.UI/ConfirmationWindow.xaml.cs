@@ -19,7 +19,7 @@ namespace UnrealExporter.UI
     /// </summary>
     public partial class ConfirmationWindow : Window
     {
-        public ConfirmationWindow(string[] submittedFiles, string submitMessage)
+        public ConfirmationWindow(List<string> submittedFiles, string submitMessage)
         {
             InitializeComponent();
 

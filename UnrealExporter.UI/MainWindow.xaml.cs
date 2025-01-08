@@ -31,18 +31,20 @@ namespace UnrealExporter.UI
         private readonly IPerforceService _perforceService;
         private readonly IFileService _fileService;
         private readonly IUnrealService _unrealService;
+        private readonly IAppConfig _appConfig;
 
         private string? _meshesSourceDirectory = null;
         private string? _texturesSourceDirectory = null;
 
-        public PerforceManager? PerforceManager { get; set; }
+        public PerforceService? PerforceManager { get; set; }
         public string SelectedUnrealProjectFile { get; set; }
 
-        public MainWindow(IFileService fileService, IUnrealService unrealService, IPerforceService perforceService)
+        public MainWindow(IFileService fileService, IUnrealService unrealService, IPerforceService perforceService, IAppConfig appConfig)
         {
             _fileService = fileService;
             _unrealService = unrealService;
             _perforceService = perforceService;
+            _appConfig = appConfig;
 
             InitializeComponent();
             ResetUI();
@@ -150,26 +152,28 @@ namespace UnrealExporter.UI
 
                 btnExportAssets.IsEnabled = false;
 
-                AppConfig appConfig = new()
-                {
-                    ExportMeshes = xboxExportMeshes.IsChecked ?? false,
-                    ExportTextures = xboxExportTextures.IsChecked ?? false,
-                    DestinationDirectory = txtDestinationDirectory.Text,
-                    ConvertTextures = xboxConvertTexturesToDDS.IsChecked ?? false,
-                    OverwriteFiles = xboxOverwriteFiles.IsChecked ?? false,
-                    UnrealEnginePath = txtUnrealEnginePath.Text,
-                    UnrealProjectFile = SelectedUnrealProjectFile,
-                    MeshesSourceDirectory = _meshesSourceDirectory!,
-                    TexturesSourceDirectory = _texturesSourceDirectory!
-                };
+                _appConfig.SetConfiguration(
+                    xboxExportMeshes.IsChecked ?? false,
+                    xboxExportTextures.IsChecked ?? false,
+                    txtDestinationDirectory.Text,
+                    xboxConvertTexturesToDDS.IsChecked ?? false,
+                    xboxOverwriteFiles.IsChecked ?? false,
+                    txtUnrealEnginePath.Text,
+                    SelectedUnrealProjectFile,
+                    _meshesSourceDirectory!,
+                    _texturesSourceDirectory!
+                );
 
-                if (appConfig.OverwriteFiles)
+                List<string>? filesToExcludeFromExport = null; 
+
+                if (!_appConfig.OverwriteFiles) 
                 {
-                    appConfig.FilesToExcludeFromExport = _fileService.CheckDestinationDirectoryContent(appConfig);
+                    filesToExcludeFromExport = _fileService.CheckDestinationDirectoryForExistingFiles();
                 }
 
                 _unrealService.InitializeExport();
-                var exportResult = await _unrealService.ExportAssetsAsync(appConfig);
+
+                var exportResult = await _unrealService.ExportAssetsAsync(filesToExcludeFromExport);
 
                 if (!exportResult.Success)
                 {
@@ -187,9 +191,9 @@ namespace UnrealExporter.UI
                     return;
                 }
 
-                if (appConfig.ExportTextures)
+                if (_appConfig.ExportTextures)
                 {
-                    _fileService.ConvertTextures(appConfig);
+                    _fileService.ConvertTextures();
 
                     if (!_fileService.TextureConversionSuccessful)
                     {
@@ -208,15 +212,18 @@ namespace UnrealExporter.UI
                         ShowError("No files selected for submit.");
                     }
 
-                    var fileTypes = _fileService.GetAndSetSelectedFilesFileTypes(previewWindow.SelectedFiles);
-                    appConfig.ExportMeshes = fileTypes[0];
-                    appConfig.ExportTextures = fileTypes[1];
+                    _appConfig.SubmitMessage = previewWindow.SubmitMessage;
 
-                    _fileService.MoveDirectories(previewWindow.SelectedFiles, appConfig);
+                    var (exportMeshes, exportTextures) = _fileService.GetAndSetSelectedFilesFileTypes(previewWindow.SelectedFiles);
+                    _appConfig.ExportMeshes = exportMeshes;
+                    _appConfig.ExportTextures = exportTextures;
 
-                    SubmitToPerforceAsync(previewWindow.SubmitMessage, appConfig);
+                    _fileService.MoveDirectories(previewWindow.SelectedFiles);
 
-                    ConfirmationWindow confirmationWindow = new(previewWindow.SelectedFiles, previewWindow.SubmitMessage);
+                    _perforceService.AddFilesToPerforce(_fileService.ExportedFiles);
+                    _perforceService.Disconnect();
+
+                    ConfirmationWindow confirmationWindow = new(_fileService.ExportedFiles, _appConfig.SubmitMessage); 
                     confirmationWindow.Show();
                 }
             }
@@ -228,12 +235,6 @@ namespace UnrealExporter.UI
             {
                 ResetUI();
             }
-        }
-
-        private void SubmitToPerforceAsync(string submitMessage, AppConfig appConfig)
-        {
-            _perforceService.AddFilesToPerforce(_fileService.ExportedFiles, appConfig);
-            _perforceService.Disconnect();
         }
 
         private void ShowError(string errorMessage, string errorCaption = "Error")

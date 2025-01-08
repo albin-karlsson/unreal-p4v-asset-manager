@@ -6,6 +6,6 @@ namespace UnrealExporter.App.Interfaces
     public interface IUnrealService
     {
         void InitializeExport();
-        Task<ExportResult> ExportAssetsAsync(AppConfig appConfig);
+        Task<ExportResult> ExportAssetsAsync(List<string>? filesToExcludeFromExport);
     }
 }

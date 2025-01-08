@@ -11,7 +11,7 @@ using UnrealExporter.App.Interfaces;
 
 namespace UnrealExporter.App.Services;
 
-public class PerforceManager : IPerforceService
+public class PerforceService : IPerforceService
 {
     private const string SERVER_URI = "ssl:perforce.tga.learnet.se:1666";
 
@@ -19,15 +19,17 @@ public class PerforceManager : IPerforceService
     private Server _server;
     private Repository _repository;
 
+    private readonly IAppConfig _appConfig;
+
     public string WorkspacePath { get; set; }
-    public string SubmitMessage { get; set; }
 
     public ConnectionStatus ConnectionStatus { get { return _repository.Connection.Status; } }
 
-    public PerforceManager()
+    public PerforceService(IAppConfig appConfig)
     {
         _server = new Server(new ServerAddress(SERVER_URI));
         _repository = new Repository(_server);
+        _appConfig = appConfig;
     }
 
     public List<string>? GetWorkspaces()
@@ -78,26 +80,32 @@ public class PerforceManager : IPerforceService
         _repository.Connection.Client = client;
         WorkspacePath = @$"C:\Users\{_repository.Connection.UserName}\Perforce\{_workspace}\";
 
-        // Sync files
         Sync();
     }
 
     public bool LogIn(string username, string password)
     {
-        Console.WriteLine("Attempting to login to Perforce.");
-
-        _repository.Connection.UserName = username;
-
-        if (_repository.Connection.Connect(null))
+        try
         {
-            Console.WriteLine("Connected to Perforce.");
+            Console.WriteLine("Attempting to login to Perforce.");
 
-            _repository.Connection.Login(password);
+            _repository.Connection.UserName = username;
 
-            return true;
+            if (_repository.Connection.Connect(null))
+            {
+                Console.WriteLine("Connected to Perforce.");
+
+                _repository.Connection.Login(password);
+
+                return true;
+            }
+
+            return false;
         }
-
-        return false;
+       catch
+       {
+            return false;
+       }
 
     }
 
@@ -135,46 +143,46 @@ public class PerforceManager : IPerforceService
         }
     }
 
-    public void AddFilesToPerforce(List<string> exportedFiles, AppConfig appConfig)
+    public void AddFilesToPerforce(List<string> exportedFiles)
     {
         try
         {
-            string exportPathRoot = appConfig.DestinationDirectory; 
+            //string exportPathRoot = appConfig.DestinationDirectory; 
 
-            string meshesExportPath = appConfig.ExportMeshes && appConfig.ExportTextures
-                ? Path.Combine(exportPathRoot, "Meshes")
-                : exportPathRoot;
+            //string meshesExportPath = appConfig.ExportMeshes && appConfig.ExportTextures
+            //    ? Path.Combine(exportPathRoot, "Meshes")
+            //    : exportPathRoot;
 
-            string texturesExportPath = appConfig.ExportMeshes && appConfig.ExportTextures
-                ? Path.Combine(exportPathRoot, "Textures")
-                : exportPathRoot;
+            //string texturesExportPath = appConfig.ExportMeshes && appConfig.ExportTextures
+            //    ? Path.Combine(exportPathRoot, "Textures")
+            //    : exportPathRoot;
 
-            string[] meshFilePaths = Directory.GetFiles(meshesExportPath);
-            string[] textureFilePaths = Directory.GetFiles(texturesExportPath);
+            //string[] meshFilePaths = Directory.GetFiles(meshesExportPath);
+            //string[] textureFilePaths = Directory.GetFiles(texturesExportPath);
 
-            List<string> allFilePaths = meshFilePaths.Concat(textureFilePaths).ToList();
+            //List<string> allFilePaths = meshFilePaths.Concat(textureFilePaths).ToList();
 
-            for (int i = allFilePaths.Count - 1; i >= 0; i--)
-            {
-                var filePath = allFilePaths[i];
-                if (!exportedFiles.Contains(filePath))
-                {
-                    allFilePaths.RemoveAt(i);
-                }
-            }
+            //for (int i = allFilePaths.Count - 1; i >= 0; i--)
+            //{
+            //    var filePath = allFilePaths[i];
+            //    if (!exportedFiles.Contains(filePath))
+            //    {
+            //        allFilePaths.RemoveAt(i);
+            //    }
+            //}
 
-            string[] filePaths = allFilePaths.ToArray();
+            //string[] filePaths = allFilePaths.ToArray();
 
-            if (filePaths.Length == 0)
-            {
-                Console.WriteLine("No files found in the specified directory.");
-                return;
-            }
+            //if (filePaths.Length == 0)
+            //{
+            //    Console.WriteLine("No files found in the specified directory.");
+            //    return;
+            //}
 
             List<FileSpec> fileSpecs = new List<FileSpec>();
-            foreach (string filePath in filePaths)
+            foreach (string exportedFile in exportedFiles)
             {
-                fileSpecs.Add(new FileSpec(new LocalPath(filePath)));
+                fileSpecs.Add(new FileSpec(new LocalPath(exportedFile)));
             }
 
             AddOrEditFiles(fileSpecs.ToArray());
@@ -200,7 +208,6 @@ public class PerforceManager : IPerforceService
 
             foreach (var fileSpec in fileSpecs)
             {
-                // Check if the file exists in Perforce
                 Options options = new();
                 IList<FileMetaData> fileMetaDataList = _repository.GetFileMetaData(options, new FileSpec[] { fileSpec });
 
@@ -210,7 +217,6 @@ public class PerforceManager : IPerforceService
                 }
                 else
                 {
-                    // If the file exists, mark it for editing
                     filesToEdit.Add(fileSpec);
                 }
             }
@@ -247,8 +253,6 @@ public class PerforceManager : IPerforceService
     {
         try
         {
-            Console.WriteLine("Submitting changes to Perforce...");
-
             Options options = new();
 
             FileSpec fileSpec = new FileSpec(new DepotPath("//..."), null);  // This pattern matches all files
@@ -264,7 +268,7 @@ public class PerforceManager : IPerforceService
             }
 
             var changelist = new Changelist();
-            changelist.Description = SubmitMessage;
+            changelist.Description = _appConfig.SubmitMessage;
 
             foreach (var file in openedFiles)
             {

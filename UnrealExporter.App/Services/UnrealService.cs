@@ -18,9 +18,11 @@ public class UnrealService : IUnrealService
     private readonly string PYTHON_SCRIPT_DESTINATION_PATH = Path.Combine("D:/", "SC_UE_ExportAssetsFromUnreal.py");
     private readonly string PYTHON_SCRIPT_SOURCE_PATH = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Scripts", "SC_UE_ExportAssetsFromUnreal.py");
 
-    public UnrealService()
-    {
+    private readonly IAppConfig _appConfig;
 
+    public UnrealService(IAppConfig appConfig)
+    {
+        _appConfig = appConfig;
     }
 
     private void RemovePythonScriptFile()
@@ -47,22 +49,22 @@ public class UnrealService : IUnrealService
         }
     }
 
-    public async Task<ExportResult> ExportAssetsAsync(AppConfig appConfig)
+    public async Task<ExportResult> ExportAssetsAsync(List<string>? filesToExcludeFromExport)
     {
         CopyPythonScriptToDestination();
 
         try
         {
-            string directoryPath = Path.GetDirectoryName(appConfig.UnrealEnginePath)!;
+            string directoryPath = Path.GetDirectoryName(_appConfig.UnrealEnginePath)!;
             string unrealEditorPath = Path.Combine(directoryPath, "UnrealEditor-Cmd.exe");
-            string arguments = $"\"{unrealEditorPath}\" \"{appConfig.UnrealProjectFile}\" -stdout -FullStdOutLogOutput -ExecutePythonScript=\"{PYTHON_SCRIPT_DESTINATION_PATH} {EXPORT_DIRECTORY} ";
-            arguments += appConfig.ExportMeshes ? $"{appConfig.MeshesSourceDirectory} " : "None ";
-            arguments += appConfig.ExportTextures ? $"{appConfig.TexturesSourceDirectory} " : "None ";
+            string arguments = $"\"{unrealEditorPath}\" \"{_appConfig.UnrealProjectFile}\" -stdout -FullStdOutLogOutput -ExecutePythonScript=\"{PYTHON_SCRIPT_DESTINATION_PATH} {EXPORT_DIRECTORY} ";
+            arguments += _appConfig.ExportMeshes ? $"{_appConfig.MeshesSourceDirectory} " : "None ";
+            arguments += _appConfig.ExportTextures ? $"{_appConfig.TexturesSourceDirectory} " : "None ";
 
-            if (appConfig?.FilesToExcludeFromExport?.Any() == true)
+            if (filesToExcludeFromExport?.Any() == true)
             {
                 string tempFilePath = Path.GetTempFileName();
-                File.WriteAllText(tempFilePath, JsonSerializer.Serialize(appConfig.FilesToExcludeFromExport));
+                File.WriteAllText(tempFilePath, JsonSerializer.Serialize(filesToExcludeFromExport));
                 arguments += $"{tempFilePath}\"";
             }
             else

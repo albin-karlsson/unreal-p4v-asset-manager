@@ -3,8 +3,9 @@ using System;
 using System.Configuration;
 using System.Data;
 using System.Windows;
-using UnrealExporter.App;
+using UnrealExporter.App.Configs;
 using UnrealExporter.App.Interfaces;
+using UnrealExporter.App.Services;
 
 namespace UnrealExporter.UI
 {
@@ -21,7 +22,8 @@ namespace UnrealExporter.UI
             var serviceCollection = new ServiceCollection();
             serviceCollection.AddSingleton<IFileService, FileService>();
             serviceCollection.AddSingleton<IUnrealService, UnrealService>();
-            serviceCollection.AddSingleton<IPerforceService, PerforceManager>();
+            serviceCollection.AddSingleton<IPerforceService, PerforceService>();
+            serviceCollection.AddSingleton<IAppConfig, AppConfig>();
 
             serviceCollection.AddSingleton<MainWindow>();
 
@@ -37,3 +39,4 @@ namespace UnrealExporter.UI
     }
 
 }
+
