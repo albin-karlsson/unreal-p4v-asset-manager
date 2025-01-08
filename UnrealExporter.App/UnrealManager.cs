@@ -6,10 +6,12 @@ using System.Linq;
 using System.Text;
 using System.Text.Json;
 using System.Threading.Tasks;
+using UnrealExporter.App.Interfaces;
+using UnrealExporter.App.Models;
 
 namespace UnrealExporter.App;
 
-public class UnrealManager
+public class UnrealManager : IUnrealService
 {
     private string _unrealEnginePath;
     private string _projectFilePath;
@@ -70,21 +72,22 @@ public class UnrealManager
         }
     }
 
-    public async Task LaunchUnrealAndRunScriptAsync(List<string> filesToExclude)
+    public async Task<ExportResult> ExportAssetsAsync(ExportConfiguration exportConfig)
     {
         Console.WriteLine("Launching Unreal.");
 
         try
         {
             string unrealEditorPath = @"C:\Program Files\Epic Games\UE_5.3\Engine\Binaries\Win64\UnrealEditor-Cmd.exe";
-            string arguments = $"\"{unrealEditorPath}\" \"{_projectFilePath}\" -stdout -FullStdOutLogOutput -ExecutePythonScript=\"{_pythonScriptDestinationPath} {_outputFolder} ";
+            //string arguments = $"\"{unrealEditorPath}\" \"{_projectFilePath}\" -stdout -FullStdOutLogOutput -ExecutePythonScript=\"{_pythonScriptDestinationPath} {_outputFolder} ";
+            string arguments = $"\"{unrealEditorPath}\" \"{_projectFilePath}\" -ExecutePythonScript=\"{_pythonScriptDestinationPath} {_outputFolder} ";
             arguments += _exportMeshes ? $"{_meshesSourceDirectory} " : "None ";
             arguments += _exportTextures ? $"{_texturesSourceDirectory} " : "None ";
 
-            if (filesToExclude.Any())
+            if (exportConfig.FilesToExclude.Any())
             {
                 string tempFilePath = Path.GetTempFileName();
-                File.WriteAllText(tempFilePath, JsonSerializer.Serialize(filesToExclude));
+                File.WriteAllText(tempFilePath, JsonSerializer.Serialize(exportConfig.FilesToExclude));
                 arguments += $"{tempFilePath}\"";
             }
             else
@@ -109,57 +112,16 @@ public class UnrealManager
             Console.WriteLine("Unreal launched and script executed.");
 
             RemovePythonScriptFile();
+
+            return new ExportResult { Success = true };
         }
         catch (Exception ex)
         {
             Console.WriteLine("Error launching Unreal Engine or running the script: " + ex.Message);
+
+            return new ExportResult { Success = false };
         }
     }
-
-    //public void LaunchUnrealAndRunScript(List<string> filesToExclude)
-    //{
-    //    Console.WriteLine("Launching Unreal.");
-
-    //    try
-    //    {
-    //        string unrealEditorPath = @"C:\Program Files\Epic Games\UE_5.3\Engine\Binaries\Win64\UnrealEditor-Cmd.exe";
-    //        string arguments = $"\"{unrealEditorPath}\" \"{_projectFilePath}\" -stdout -FullStdOutLogOutput -ExecutePythonScript=\"{_pythonScriptDestinationPath} {_outputFolder} ";
-    //        arguments += _exportMeshes ? $"{_meshesSourceDirectory} " : "None ";
-    //        arguments += _exportTextures ? $"{_texturesSourceDirectory} " : "None ";
-
-    //        if (filesToExclude.Any())
-    //        {
-    //            string tempFilePath = Path.GetTempFileName();
-    //            File.WriteAllText(tempFilePath, JsonSerializer.Serialize(filesToExclude));
-    //            arguments += $"{tempFilePath}\"";
-    //        }
-    //        else
-    //        {
-    //            arguments += "None\"";
-    //        }
-
-    //        var processStartInfo = new ProcessStartInfo
-    //        {
-    //            FileName = "cmd.exe",
-    //            Arguments = $"/C \"{arguments}\"",
-    //            CreateNoWindow = false,
-    //            UseShellExecute = false
-    //        };
-
-    //        Process? process = Process.Start(processStartInfo);
-    //        if (process != null)
-    //        {
-    //            process.WaitForExit();
-    //        }
-    //        Console.WriteLine("Unreal launched and script executed.");
-
-    //        RemovePythonScriptFile();
-    //    }
-    //    catch (Exception ex)
-    //    {
-    //        Console.WriteLine("Error launching Unreal Engine or running the script: " + ex.Message);
-    //    }
-    //}
 
     public void InitializeExport()
     {

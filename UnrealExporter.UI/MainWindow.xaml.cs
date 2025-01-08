@@ -4,6 +4,7 @@ using System.ComponentModel;
 using System.Data;
 using System.IO;
 using System.Numerics;
+using System.Runtime.CompilerServices;
 using System.Security.Policy;
 using System.Text;
 using System.Threading.Channels;
@@ -19,6 +20,7 @@ using System.Windows.Navigation;
 using System.Windows.Shapes;
 using UnrealExporter.App;
 using UnrealExporter.App.Interfaces;
+using UnrealExporter.App.Models;
 
 namespace UnrealExporter.UI
 {
@@ -26,14 +28,22 @@ namespace UnrealExporter.UI
     {
         private const string DEFAULT_UE_PATH = @"C:\Program Files\Epic Games\UE_5.3\Engine\Binaries\Win64\UnrealEditor.exe";
 
+        private readonly IPerforceService _perforceService;
+        private readonly IFileService _fileService;
+        private readonly IUnrealService _unrealService;
+
         private string? _meshesSourceDirectory = null;
         private string? _texturesSourceDirectory = null;
 
         public PerforceManager? PerforceManager { get; set; }
         public string SelectedUnrealProjectFile { get; set; }
 
-        public MainWindow()
+        public MainWindow(IFileService fileService, IUnrealService unrealService, IPerforceService perforceService)
         {
+            _fileService = fileService;
+            _unrealService = unrealService;
+            _perforceService = perforceService;
+
             InitializeComponent();
             InitializeDefaultValues();
         }
@@ -41,7 +51,41 @@ namespace UnrealExporter.UI
         private void InitializeDefaultValues()
         {
             txtUnrealEnginePath.Text = DEFAULT_UE_PATH;
-            btnExportAssets.IsEnabled = false;
+            SetUIState(false);
+        }
+
+        private bool ValidateExportRequirements()
+        {
+            var validationErrors = new List<string>();
+
+            if (!(xboxExportMeshes.IsChecked ?? false) && !(xboxExportTextures.IsChecked ?? false))
+            {
+                validationErrors.Add("Please select to export either meshes, textures, or both.");
+            }
+
+            if (xboxExportMeshes.IsChecked ?? false && string.IsNullOrEmpty(txtUnrealMeshesDirectory.Text))
+            {
+                validationErrors.Add("Meshes export selected but no Unreal meshes directory specified.");
+            }
+
+            if (xboxExportTextures.IsChecked ?? false && string.IsNullOrEmpty(txtUnrealTexturesDirectory.Text))
+            {
+                validationErrors.Add("Textures export selected but no Unreal textures directory specified.");
+            }
+
+            if (string.IsNullOrEmpty(txtOutputDirectory.Text))
+            {
+                validationErrors.Add("No output directory specified.");
+            }
+
+            if (validationErrors.Any())
+            {
+                // TODO: Add a better error window
+                ShowError("Validation errors.");
+                return false;
+            }
+
+            return true;
         }
 
         private void xboxUseDefaultUnrealEnginePath_Clicked(object sender, RoutedEventArgs e)
@@ -65,8 +109,6 @@ namespace UnrealExporter.UI
 
             if (trimmedUsername.Length > 0 && trimmedPassword.Length > 0)
             {
-                // Login to perforce and get perforce workspaces
-
                 PerforceManager = new();
 
                 bool isSuccessfulLogin = PerforceManager.LogIn(trimmedUsername, trimmedPassword);
@@ -96,128 +138,200 @@ namespace UnrealExporter.UI
             }
         }
 
+        //private async void btnExportAssets_Click(object sender, RoutedEventArgs e)
+        //{
+        //    string? selectedWorkspace = cboxPerforceWorkspace.SelectedItem.ToString();
+
+        //    if (!(bool)xboxExportMeshes.IsChecked! && !(bool)xboxExportTextures.IsChecked!)
+        //    {
+        //        MessageBox.Show("Please select to export either meshes, textures, or both, and try again.", "Error", MessageBoxButton.OK, MessageBoxImage.Error); ;
+        //        return;
+        //    }
+
+        //    if (selectedWorkspace != null && PerforceManager != null && !string.IsNullOrEmpty(txtUnrealEnginePath.Text))
+        //    {
+        //        string unrealEnginePath = txtUnrealEnginePath.Text.Trim();
+
+        //        bool exportMeshes = (bool)xboxExportMeshes.IsChecked!;
+        //        bool exportTextures = (bool)xboxExportTextures.IsChecked!;
+
+        //        List<string> errors = new();
+
+        //        if (exportMeshes && string.IsNullOrEmpty(txtUnrealMeshesDirectory.Text))
+        //        {
+        //            errors.Add("Attempting to export meshes but no Unreal meshes directory specified.");
+        //        }
+        //        if (exportTextures && string.IsNullOrEmpty(txtUnrealTexturesDirectory.Text))
+        //        {
+        //            errors.Add("Attempting to export textures but no Unreal textures directory specified.");
+        //        }
+        //        if (string.IsNullOrEmpty(txtOutputDirectory.Text))
+        //        {
+        //            errors.Add("No output directory specified.");
+        //        }
+        //        if (errors.Count > 0)
+        //        {
+        //            string errorMessage = string.Join(Environment.NewLine, errors);
+        //            MessageBox.Show(errorMessage, "Errors", MessageBoxButton.OK, MessageBoxImage.Error);
+        //            return;
+        //        }
+
+        //        PerforceManager.Connect(selectedWorkspace);
+
+        //        bool overwriteFiles = (bool)xboxOverwriteFiles.IsChecked!;
+        //        bool convertTextures = (bool)xboxConvertTexturesToDDS.IsChecked!;
+
+        //        FileManager fileManager = new(txtOutputDirectory.Text, overwriteFiles, exportMeshes, exportTextures, convertTextures);
+
+        //        List<string> filesToExclude = new();
+
+        //        if (!overwriteFiles)
+        //        {
+        //            filesToExclude = fileManager.CheckDestinationFolderContent();
+        //        }
+
+        //        UnrealManager unrealManager = new(unrealEnginePath, SelectedUnrealProjectFile, exportMeshes, exportTextures, _meshesSourceDirectory, _texturesSourceDirectory);
+        //        unrealManager.InitializeExport();
+
+        //        await unrealManager.LaunchUnrealAndRunScriptAsync(filesToExclude);
+
+        //        if (!fileManager.CheckExistingOutputDirectory())
+        //        {
+        //            MessageBox.Show("No files found to export.", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+        //            ResetUi();
+        //            return;
+        //        }
+
+        //        if (exportTextures)
+        //        {
+        //            fileManager.ConvertTextures();
+
+        //            if (!fileManager.TextureConversionSuccessful)
+        //            {
+        //                MessageBox.Show("DDS conversion failed! Export canceled. Check file names and try again.", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+        //                ResetUi();
+        //                return;
+        //            }
+        //        }
+
+        //        PreviewWindow previewWindow = new(fileManager.CheckFilesToExport());
+
+        //        try
+        //        {
+        //            if ((bool)previewWindow.ShowDialog()!)
+        //            {
+        //                if (previewWindow.FilesToExport.Any())
+        //                {
+        //                    string[] selectedFiles = previewWindow.FilesToExport;
+
+        //                    bool[] exportedFileTypes = fileManager.CheckSelectedFilesFiletypes(selectedFiles);
+        //                    fileManager.MoveDirectories(selectedFiles);
+
+        //                    PerforceManager.SubmitMessage = previewWindow.SubmitMessage;
+        //                    PerforceManager.AddFilesToPerforce(fileManager.ExportedFiles, txtOutputDirectory.Text, exportedFileTypes[0], exportedFileTypes[1]);
+        //                    PerforceManager.Disconnect();
+
+        //                    var confirmationWindow = new ConfirmationWindow(fileManager.ExportedFiles, previewWindow.SubmitMessage);
+        //                    confirmationWindow.ShowDialog();
+
+        //                    ResetUi();
+        //                }
+        //                else
+        //                {
+        //                    MessageBox.Show("No files selected to submit.", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+        //                    ResetUi();
+        //                    return;
+        //                }
+        //            }
+        //            else
+        //            {
+        //                MessageBox.Show("Export canceled.", "Warning", MessageBoxButton.OK, MessageBoxImage.Warning);
+        //                ResetUi();
+        //                return;
+        //            }
+        //        }
+        //        catch (Win32Exception ex) when (ex.NativeErrorCode == 0x8)
+        //        {
+        //            MessageBox.Show("A memory error ocurred when trying to preview the files for export.", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+        //            ResetUi();
+        //            return;
+        //        }
+        //    }
+        //}
+
+        private void SetUIState(bool enabled)
+        {
+            btnExportAssets.IsEnabled = enabled;
+        }
+
         private async void btnExportAssets_Click(object sender, RoutedEventArgs e)
         {
-            string? selectedWorkspace = cboxPerforceWorkspace.SelectedItem.ToString();
-
-            if (!(bool)xboxExportMeshes.IsChecked! && !(bool)xboxExportTextures.IsChecked!)
+            try
             {
-                MessageBox.Show("Please select to export either meshes, textures, or both, and try again.", "Error", MessageBoxButton.OK, MessageBoxImage.Error); ;
-                return;
+                if (!ValidateExportRequirements())
+                    return;
+
+                SetUIState(false);
+
+                var exportConfig = new ExportConfiguration
+                {
+                    UnrealEnginePath = txtUnrealEnginePath.Text.Trim(),
+                    ProjectFile = SelectedUnrealProjectFile,
+                    ExportMeshes = xboxExportMeshes.IsChecked ?? false,
+                    ExportTextures = xboxExportTextures.IsChecked ?? false,
+                    MeshesDirectory = _meshesSourceDirectory,
+                    TexturesDirectory = _texturesSourceDirectory,
+                    OutputDirectory = txtOutputDirectory.Text,
+                    OverwriteFiles = xboxOverwriteFiles.IsChecked ?? false,
+                    ConvertTextures = xboxConvertTexturesToDDS.IsChecked ?? false
+                };
+
+                var exportResult = await _unrealService.ExportAssetsAsync(exportConfig);
+
+                if (!exportResult.Success)
+                {
+                    ShowError("Error exporting from Unreal.");
+
+                    return;
+                }
+
+                PreviewWindow previewWindow = new(exportResult.ExportedFiles);
+
+                if ((bool)previewWindow.ShowDialog()!)
+                {
+                    ProcessSelectedFiles(previewWindow.FilesToExport, previewWindow.SubmitMessage);
+
+                    ConfirmationWindow confirmationWindow = new(exportResult.ExportedFiles, previewWindow.SubmitMessage);
+                    confirmationWindow.Show();
+                }
             }
-
-            if (selectedWorkspace != null && PerforceManager != null && !string.IsNullOrEmpty(txtUnrealEnginePath.Text))
+            catch (Exception ex)
             {
-                string unrealEnginePath = txtUnrealEnginePath.Text.Trim();
-
-                bool exportMeshes = (bool)xboxExportMeshes.IsChecked!;
-                bool exportTextures = (bool)xboxExportTextures.IsChecked!;
-
-                List<string> errors = new();
-
-                if (exportMeshes && string.IsNullOrEmpty(txtUnrealMeshesDirectory.Text))
-                {
-                    errors.Add("Attempting to export meshes but no Unreal meshes directory specified.");
-                }
-                if (exportTextures && string.IsNullOrEmpty(txtUnrealTexturesDirectory.Text))
-                {
-                    errors.Add("Attempting to export textures but no Unreal textures directory specified.");
-                }
-                if (string.IsNullOrEmpty(txtOutputDirectory.Text))
-                {
-                    errors.Add("No output directory specified.");
-                }
-                if (errors.Count > 0)
-                {
-                    string errorMessage = string.Join(Environment.NewLine, errors);
-                    MessageBox.Show(errorMessage, "Errors", MessageBoxButton.OK, MessageBoxImage.Error);
-                    return;
-                }
-
-                PerforceManager.Connect(selectedWorkspace);
-
-                bool overwriteFiles = (bool)xboxOverwriteFiles.IsChecked!;
-                bool convertTextures = (bool)xboxConvertTexturesToDDS.IsChecked!;
-
-                FileManager fileManager = new(txtOutputDirectory.Text, overwriteFiles, exportMeshes, exportTextures, convertTextures);
-
-                List<string> filesToExclude = new();
-
-                if (!overwriteFiles)
-                {
-                    filesToExclude = fileManager.CheckDestinationFolderContent();
-                }
-
-                UnrealManager unrealManager = new(unrealEnginePath, SelectedUnrealProjectFile, exportMeshes, exportTextures, _meshesSourceDirectory, _texturesSourceDirectory);
-                unrealManager.InitializeExport();
-
-                await unrealManager.LaunchUnrealAndRunScriptAsync(filesToExclude);
-
-                if (!fileManager.CheckExistingOutputDirectory())
-                {
-                    MessageBox.Show("No files found to export.", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
-                    ResetUi();
-                    return;
-                }
-
-                if (exportTextures)
-                {
-                    fileManager.ConvertTextures();
-
-                    if (!fileManager.TextureConversionSuccessful)
-                    {
-                        MessageBox.Show("DDS conversion failed! Export canceled. Check file names and try again.", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
-                        ResetUi();
-                        return;
-                    }
-                }
-
-                PreviewWindow previewWindow = new(fileManager.CheckFilesToExport());
-
-                try
-                {
-                    if ((bool)previewWindow.ShowDialog()!)
-                    {
-                        if (previewWindow.FilesToExport.Any())
-                        {
-                            string[] selectedFiles = previewWindow.FilesToExport;
-
-                            bool[] exportedFileTypes = fileManager.CheckSelectedFilesFiletypes(selectedFiles);
-                            fileManager.MoveDirectories(selectedFiles);
-
-                            PerforceManager.SubmitMessage = previewWindow.SubmitMessage;
-                            PerforceManager.AddFilesToPerforce(fileManager.ExportedFiles, txtOutputDirectory.Text, exportedFileTypes[0], exportedFileTypes[1]);
-                            PerforceManager.Disconnect();
-
-                            var confirmationWindow = new ConfirmationWindow(fileManager.ExportedFiles, previewWindow.SubmitMessage);
-                            confirmationWindow.ShowDialog();
-
-                            ResetUi();
-                        }
-                        else
-                        {
-                            MessageBox.Show("No files selected to submit.", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
-                            ResetUi();
-                            return;
-                        }
-                    }
-                    else
-                    {
-                        MessageBox.Show("Export canceled.", "Warning", MessageBoxButton.OK, MessageBoxImage.Warning);
-                        ResetUi();
-                        return;
-                    }
-                }
-                catch (Win32Exception ex) when (ex.NativeErrorCode == 0x8)
-                {
-                    MessageBox.Show("A memory error ocurred when trying to preview the files for export.", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
-                    ResetUi();
-                    return;
-                }
-
+                ShowError("An unexpected error occurred.");
+            }
+            finally
+            {
+                SetUIState(true);
+                ResetUI();
             }
         }
-        private void ResetUi()
+
+        private void ProcessSelectedFiles(string[] selectedFiles, string submitMessage)
+        {
+
+        }
+
+        private void ShowError(string errorMessage, string errorCaption = "Error")
+        {
+            MessageBox.Show(errorMessage, errorCaption, MessageBoxButton.OK, MessageBoxImage.Error);
+        }
+
+        private void ShowWarning(string warningMessage, string warningCaption = "Warning")
+        {
+            MessageBox.Show(warningMessage, warningCaption, MessageBoxButton.OK, MessageBoxImage.Warning);
+        }
+
+        private void ResetUI()
         {
             // Reset text inputs
             txtPerforceUsername.Text = string.Empty;

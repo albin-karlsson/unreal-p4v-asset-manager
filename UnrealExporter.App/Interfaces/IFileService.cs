@@ -1,12 +1,16 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace UnrealExporter.App.Interfaces
+﻿namespace UnrealExporter.App.Interfaces
 {
     public interface IFileService
     {
+        bool TextureConversionSuccessful { get; set; }
+        List<string> ExportedFiles { get; set; }
+
+        bool CheckExistingOutputDirectory();
+        void ConvertTextures();
+        bool[] CheckSelectedFilesFiletypes(string[] selectedFiles);
+        void MoveDirectories(string[] filesToExport);
+        List<string> CheckDestinationFolderContent();
+
+        string[] CheckFilesToExport();
     }
 }

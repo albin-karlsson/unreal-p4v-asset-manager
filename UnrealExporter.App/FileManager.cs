@@ -4,10 +4,11 @@ using System.Diagnostics;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using UnrealExporter.App.Interfaces;
 
 namespace UnrealExporter.App;
 
-public class FileManager
+public class FileManager : IFileService
 {
     private string _perforceDestinationDirectory;
     private readonly string sourceDirectory = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Deps");

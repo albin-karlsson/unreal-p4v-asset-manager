@@ -1,12 +1,10 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using UnrealExporter.App.Models;
 
 namespace UnrealExporter.App.Interfaces
 {
     public interface IUnrealService
     {
+        void InitializeExport();
+        Task<ExportResult> ExportAssetsAsync(ExportConfiguration exportConfig);
     }
 }

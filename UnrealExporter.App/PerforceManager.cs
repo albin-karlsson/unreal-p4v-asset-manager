@@ -6,10 +6,11 @@ using System.Runtime.CompilerServices;
 using System.Security.Cryptography.X509Certificates;
 using System.Text;
 using System.Threading.Tasks;
+using UnrealExporter.App.Interfaces;
 
 namespace UnrealExporter.App;
 
-public class PerforceManager
+public class PerforceManager : IPerforceService
 {
     string _serverUri = "ssl:perforce.tga.learnet.se:1666";
     string _workspace;
