@@ -4,10 +4,10 @@ using System.Diagnostics;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using UnrealExporter.App.Configs;
 using UnrealExporter.App.Interfaces;
-using UnrealExporter.App.Models;
 
-namespace UnrealExporter.App;
+namespace UnrealExporter.App.Services;
 
 public class FileService : IFileService
 {
@@ -30,7 +30,7 @@ public class FileService : IFileService
 
     public bool CheckExistingOutputDirectory()
     {
-        if(Path.Exists(EXPORT_DIRECTORY))
+        if (Path.Exists(EXPORT_DIRECTORY))
         {
             return true;
         }
@@ -38,9 +38,9 @@ public class FileService : IFileService
         return false;
     }
 
-    public void ConvertTextures(ExportConfig exportConfig)
+    public void ConvertTextures(AppConfig appConfig)
     {
-        if (exportConfig.ExportTextures && exportConfig.ConvertTextures)
+        if (appConfig.ExportTextures && appConfig.ConvertTextures)
         {
             Console.WriteLine(@"Copying executables to C:\UnrealExport\Textures\");
 
@@ -70,7 +70,7 @@ public class FileService : IFileService
     /// </summary>
     /// <param name="selectedFiles"></param>
     /// <returns>An array of bools where the first bool indicates if meshes should be exported, and the second one if textures should be exported</returns>
-    public bool[] SetSelectedFilesFileTypes(string[] selectedFiles)
+    public bool[] GetAndSetSelectedFilesFileTypes(string[] selectedFiles)
     {
         _exportMeshes = selectedFiles.Any(f => Path.GetExtension(f).ToLower().Contains("fbx"));
         _exportTextures = selectedFiles.Any(f => Path.GetExtension(f).ToLower().Contains("dds") || Path.GetExtension(f).ToLower().Contains("png"));
@@ -190,35 +190,35 @@ public class FileService : IFileService
     }
 
     // Method to move the folders to the workspace folder
-    public void MoveDirectories(string[] filesToExport, ExportConfig exportConfig)
+    public void MoveDirectories(string[] filesToExport, AppConfig appConfig)
     {
         try
         {
             List<string> sourceDirectories = new();
 
-            if(_exportMeshes)
+            if (_exportMeshes)
             {
                 sourceDirectories.Add(Path.Combine(EXPORT_DIRECTORY, "Meshes"));
             }
 
-            if(_exportTextures)
+            if (_exportTextures)
             {
                 sourceDirectories.Add(Path.Combine(EXPORT_DIRECTORY, "Textures"));
 
             }
 
-            if (!Directory.Exists(exportConfig.DestinationDirectory))
+            if (!Directory.Exists(appConfig.DestinationDirectory))
             {
-                Directory.CreateDirectory(exportConfig.DestinationDirectory);
+                Directory.CreateDirectory(appConfig.DestinationDirectory);
             }
 
             // Move the folders to the folder in Perforce
-            foreach (var sourceDirectory in sourceDirectories) 
+            foreach (var sourceDirectory in sourceDirectories)
             {
-                MoveDirectory(filesToExport, sourceDirectory, exportConfig);
+                MoveDirectory(filesToExport, sourceDirectory, appConfig);
             }
 
-            Console.WriteLine($"Moved folder(s) to {exportConfig.DestinationDirectory}");
+            Console.WriteLine($"Moved folder(s) to {appConfig.DestinationDirectory}");
         }
         catch (Exception ex)
         {
@@ -239,7 +239,7 @@ public class FileService : IFileService
             if (ddsFiles.Length == pngFiles.Length || ddsFiles.Length > pngFiles.Length)
             {
                 Console.WriteLine("Success: The number of .dds and .png files are equal or there are more .dds files than .png files.");
-                return true; 
+                return true;
             }
             else
             {
@@ -255,22 +255,22 @@ public class FileService : IFileService
     }
 
     // Method to remove the read-only attribute from all files in a directory
-    private void RemoveReadOnlyAttributeFromFiles(string[] sourceFiles, ExportConfig exportConfig)
+    private void RemoveReadOnlyAttributeFromFiles(string[] sourceFiles, AppConfig appConfig)
     {
         try
         {
             foreach (var sourceFile in sourceFiles)
             {
-                string fileName = Path.GetFileName(sourceFile); 
-                string destinationFile = Path.Combine(exportConfig.DestinationDirectory, fileName);
+                string fileName = Path.GetFileName(sourceFile);
+                string destinationFile = Path.Combine(appConfig.DestinationDirectory, fileName);
 
-                if (File.Exists(destinationFile) && exportConfig.OverwriteFiles)
+                if (File.Exists(destinationFile) && appConfig.OverwriteFiles)
                 {
                     FileInfo fileInfo = new FileInfo(destinationFile);
 
                     if (fileInfo.IsReadOnly)
                     {
-                        fileInfo.IsReadOnly = false; 
+                        fileInfo.IsReadOnly = false;
                         Console.WriteLine($"Read-only attribute removed from: {fileInfo.FullName}");
                     }
                 }
@@ -282,7 +282,7 @@ public class FileService : IFileService
         }
     }
 
-    private void RemoveFilesPartOfThisExport(string[] sourceFiles, ExportConfig exportConfig)
+    private void RemoveFilesPartOfThisExport(string[] sourceFiles, AppConfig appConfig)
     {
         try
         {
@@ -291,11 +291,11 @@ public class FileService : IFileService
             foreach (var sourceFile in sourceFiles)
             {
                 string fileName = Path.GetFileName(sourceFile);
-                string destinationFile = Path.Combine(exportConfig.DestinationDirectory, fileName);
+                string destinationFile = Path.Combine(appConfig.DestinationDirectory, fileName);
 
-                if (File.Exists(destinationFile) && exportConfig.OverwriteFiles)
+                if (File.Exists(destinationFile) && appConfig.OverwriteFiles)
                 {
-                    File.Delete(destinationFile); 
+                    File.Delete(destinationFile);
                     Console.WriteLine($"Deleted file: {destinationFile}");
                 }
             }
@@ -307,7 +307,7 @@ public class FileService : IFileService
     }
 
     // Method to move a folder from source to destination
-    private void MoveDirectory(string[] filesToExport, string sourceDirectory, ExportConfig exportConfig)
+    private void MoveDirectory(string[] filesToExport, string sourceDirectory, AppConfig appConfig)
     {
         try
         {
@@ -317,22 +317,21 @@ public class FileService : IFileService
 
                 if (_exportMeshes && _exportTextures)
                 {
-                    destinationPath = Path.Combine(exportConfig.DestinationDirectory, Path.GetFileName(sourceDirectory));
+                    destinationPath = Path.Combine(appConfig.DestinationDirectory, Path.GetFileName(sourceDirectory));
                 }
                 else
                 {
-                    destinationPath = Path.Combine(exportConfig.DestinationDirectory);
-                }               
+                    destinationPath = Path.Combine(appConfig.DestinationDirectory);
+                }
 
                 if (Directory.Exists(destinationPath))
                 {
-                    RemoveReadOnlyAttributeFromFiles(filesToExport, exportConfig);
-
-                    RemoveFilesPartOfThisExport(filesToExport, exportConfig);
+                    RemoveReadOnlyAttributeFromFiles(filesToExport, appConfig);
+                    RemoveFilesPartOfThisExport(filesToExport, appConfig);
                 }
 
                 foreach (var fileToExport in filesToExport)
-                { 
+                {
                     string destinationFile = Path.Combine(destinationPath, Path.GetFileName(fileToExport));
 
                     if (File.Exists(destinationFile))
@@ -357,13 +356,13 @@ public class FileService : IFileService
         }
     }
 
-    public List<string> CheckDestinationDirectoryContent(ExportConfig exportConfig)
+    public List<string> CheckDestinationDirectoryContent(AppConfig appConfig)
     {
         List<string> filesToExclude = new();
 
         if (_exportMeshes)
         {
-            string meshPath = Path.Combine(exportConfig.DestinationDirectory, "Meshes");
+            string meshPath = Path.Combine(appConfig.DestinationDirectory, "Meshes");
             if (Directory.Exists(meshPath))
             {
                 filesToExclude.AddRange(Directory.GetFiles(meshPath, "*.fbx", SearchOption.AllDirectories));
@@ -371,7 +370,7 @@ public class FileService : IFileService
         }
         if (_exportTextures)
         {
-            string texturePath = Path.Combine(exportConfig.DestinationDirectory, "Textures");
+            string texturePath = Path.Combine(appConfig.DestinationDirectory, "Textures");
             if (Directory.Exists(texturePath))
             {
                 filesToExclude.AddRange(Directory.GetFiles(texturePath, "*.dds", SearchOption.AllDirectories));

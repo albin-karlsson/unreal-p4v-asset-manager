@@ -1,4 +1,5 @@
 ﻿using Perforce.P4;
+using UnrealExporter.App.Configs;
 
 namespace UnrealExporter.App.Interfaces
 {
@@ -14,7 +15,7 @@ namespace UnrealExporter.App.Interfaces
         public bool LogIn(string username, string password);
         public void Disconnect();
         public string[] GetUnrealProjectPathFromPerforce();
-        public void AddFilesToPerforce(List<string> exportedFiles, string outputPath, bool exportMeshes, bool exportTextures);
+        public void AddFilesToPerforce(List<string> exportedFiles, AppConfig appConfig);
         public void SubmitChanges();
     }
 }

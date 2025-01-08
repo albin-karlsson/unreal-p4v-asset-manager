@@ -6,9 +6,10 @@ using System.Runtime.CompilerServices;
 using System.Security.Cryptography.X509Certificates;
 using System.Text;
 using System.Threading.Tasks;
+using UnrealExporter.App.Configs;
 using UnrealExporter.App.Interfaces;
 
-namespace UnrealExporter.App;
+namespace UnrealExporter.App.Services;
 
 public class PerforceManager : IPerforceService
 {
@@ -21,7 +22,7 @@ public class PerforceManager : IPerforceService
     public string WorkspacePath { get; set; }
     public string SubmitMessage { get; set; }
 
-    public ConnectionStatus ConnectionStatus { get { return  _repository.Connection.Status; } }
+    public ConnectionStatus ConnectionStatus { get { return _repository.Connection.Status; } }
 
     public PerforceManager()
     {
@@ -74,8 +75,8 @@ public class PerforceManager : IPerforceService
 
         Client client = _repository.GetClient(workspace);
 
-         _repository.Connection.Client = client;
-        WorkspacePath = @$"C:\Users\{ _repository.Connection.UserName}\Perforce\{_workspace}\";
+        _repository.Connection.Client = client;
+        WorkspacePath = @$"C:\Users\{_repository.Connection.UserName}\Perforce\{_workspace}\";
 
         // Sync files
         Sync();
@@ -85,13 +86,13 @@ public class PerforceManager : IPerforceService
     {
         Console.WriteLine("Attempting to login to Perforce.");
 
-            _repository.Connection.UserName = username;
+        _repository.Connection.UserName = username;
 
-        if ( _repository.Connection.Connect(null))
+        if (_repository.Connection.Connect(null))
         {
             Console.WriteLine("Connected to Perforce.");
 
-                _repository.Connection.Login(password);
+            _repository.Connection.Login(password);
 
             return true;
         }
@@ -102,7 +103,7 @@ public class PerforceManager : IPerforceService
 
     public void Disconnect()
     {
-         _repository.Connection.Disconnect();
+        _repository.Connection.Disconnect();
     }
 
     public string[] GetUnrealProjectPathFromPerforce()
@@ -126,27 +127,27 @@ public class PerforceManager : IPerforceService
         // TODO: Return the error message to the UI
         try
         {
-             _repository.Connection.Client.SyncFiles(syncOptions, null);
+            _repository.Connection.Client.SyncFiles(syncOptions, null);
         }
-        catch(Exception e)
+        catch (Exception e)
         {
 
         }
     }
 
-    public void AddFilesToPerforce(List<string> exportedFiles, string outputPath, bool exportMeshes, bool exportTextures)
+    public void AddFilesToPerforce(List<string> exportedFiles, AppConfig appConfig)
     {
         try
         {
-            string exportPathRoot = outputPath;
+            string exportPathRoot = appConfig.DestinationDirectory; 
 
-            string meshesExportPath = exportMeshes && exportTextures
-                ? Path.Combine(outputPath, "Meshes")
-                : outputPath;
+            string meshesExportPath = appConfig.ExportMeshes && appConfig.ExportTextures
+                ? Path.Combine(exportPathRoot, "Meshes")
+                : exportPathRoot;
 
-            string texturesExportPath = exportMeshes && exportTextures
-                ? Path.Combine(outputPath, "Textures")
-                : outputPath;
+            string texturesExportPath = appConfig.ExportMeshes && appConfig.ExportTextures
+                ? Path.Combine(exportPathRoot, "Textures")
+                : exportPathRoot;
 
             string[] meshFilePaths = Directory.GetFiles(meshesExportPath);
             string[] textureFilePaths = Directory.GetFiles(texturesExportPath);
@@ -158,7 +159,7 @@ public class PerforceManager : IPerforceService
                 var filePath = allFilePaths[i];
                 if (!exportedFiles.Contains(filePath))
                 {
-                    allFilePaths.RemoveAt(i); 
+                    allFilePaths.RemoveAt(i);
                 }
             }
 
@@ -176,7 +177,6 @@ public class PerforceManager : IPerforceService
                 fileSpecs.Add(new FileSpec(new LocalPath(filePath)));
             }
 
-            // Step 1: Add the files
             AddOrEditFiles(fileSpecs.ToArray());
             SubmitChanges();
         }
@@ -197,7 +197,6 @@ public class PerforceManager : IPerforceService
         {
             List<FileSpec> filesToAdd = new List<FileSpec>();
             List<FileSpec> filesToEdit = new List<FileSpec>();
-            //List<FileSpec> filesToDelete = new List<FileSpec>();
 
             foreach (var fileSpec in fileSpecs)
             {
@@ -272,13 +271,12 @@ public class PerforceManager : IPerforceService
                 changelist.Files.Add(file);
             }
 
-            changelist.OwnerName =  _repository.Connection.UserName;
+            changelist.OwnerName = _repository.Connection.UserName;
             changelist.ClientId = _workspace;
-            changelist.initialize( _repository.Connection);
+            changelist.initialize(_repository.Connection);
 
             changelist = _repository.CreateChangelist(changelist);
 
-            // Submit the changelist
             changelist.Submit(new Options());
 
             Console.WriteLine($"Changes submitted successfully.");

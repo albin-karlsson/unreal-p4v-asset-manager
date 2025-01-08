@@ -1,4 +1,4 @@
-﻿using UnrealExporter.App.Models;
+﻿using UnrealExporter.App.Configs;
 
 namespace UnrealExporter.App.Interfaces
 {
@@ -8,10 +8,10 @@ namespace UnrealExporter.App.Interfaces
         List<string> ExportedFiles { get; set; }
 
         bool CheckExistingOutputDirectory();
-        void ConvertTextures(ExportConfig exportConfig);
-        bool[] SetSelectedFilesFileTypes(string[] selectedFiles);
-        void MoveDirectories(string[] filesToExport, ExportConfig exportConfig);
-        List<string> CheckDestinationDirectoryContent(ExportConfig exportConfig);
+        void ConvertTextures(AppConfig appConfig);
+        bool[] GetAndSetSelectedFilesFileTypes(string[] selectedFiles);
+        void MoveDirectories(string[] filesToExport, AppConfig appConfig);
+        List<string> CheckDestinationDirectoryContent(AppConfig appConfig);
 
         string[] GetExportedFiles();
     }

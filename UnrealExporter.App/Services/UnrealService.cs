@@ -6,10 +6,11 @@ using System.Linq;
 using System.Text;
 using System.Text.Json;
 using System.Threading.Tasks;
+using UnrealExporter.App.Configs;
 using UnrealExporter.App.Interfaces;
 using UnrealExporter.App.Models;
 
-namespace UnrealExporter.App;
+namespace UnrealExporter.App.Services;
 
 public class UnrealService : IUnrealService
 {
@@ -24,7 +25,7 @@ public class UnrealService : IUnrealService
 
     private void RemovePythonScriptFile()
     {
-        if(File.Exists(PYTHON_SCRIPT_DESTINATION_PATH))
+        if (File.Exists(PYTHON_SCRIPT_DESTINATION_PATH))
         {
             File.Delete(PYTHON_SCRIPT_DESTINATION_PATH);
         }
@@ -46,22 +47,22 @@ public class UnrealService : IUnrealService
         }
     }
 
-    public async Task<ExportResult> ExportAssetsAsync(ExportConfig exportConfig)
+    public async Task<ExportResult> ExportAssetsAsync(AppConfig appConfig)
     {
         CopyPythonScriptToDestination();
 
         try
         {
-            string directoryPath = Path.GetDirectoryName(exportConfig.UnrealEnginePath)!;
+            string directoryPath = Path.GetDirectoryName(appConfig.UnrealEnginePath)!;
             string unrealEditorPath = Path.Combine(directoryPath, "UnrealEditor-Cmd.exe");
-            string arguments = $"\"{unrealEditorPath}\" \"{exportConfig.UnrealProjectFile}\" -stdout -FullStdOutLogOutput -ExecutePythonScript=\"{PYTHON_SCRIPT_DESTINATION_PATH} {EXPORT_DIRECTORY} ";
-            arguments += exportConfig.ExportMeshes ? $"{exportConfig.MeshesSourceDirectory} " : "None ";
-            arguments += exportConfig.ExportTextures ? $"{exportConfig.TexturesSourceDirectory} " : "None ";
+            string arguments = $"\"{unrealEditorPath}\" \"{appConfig.UnrealProjectFile}\" -stdout -FullStdOutLogOutput -ExecutePythonScript=\"{PYTHON_SCRIPT_DESTINATION_PATH} {EXPORT_DIRECTORY} ";
+            arguments += appConfig.ExportMeshes ? $"{appConfig.MeshesSourceDirectory} " : "None ";
+            arguments += appConfig.ExportTextures ? $"{appConfig.TexturesSourceDirectory} " : "None ";
 
-            if (exportConfig?.FilesToExcludeFromExport?.Any() == true)
+            if (appConfig?.FilesToExcludeFromExport?.Any() == true)
             {
                 string tempFilePath = Path.GetTempFileName();
-                File.WriteAllText(tempFilePath, JsonSerializer.Serialize(exportConfig.FilesToExcludeFromExport));
+                File.WriteAllText(tempFilePath, JsonSerializer.Serialize(appConfig.FilesToExcludeFromExport));
                 arguments += $"{tempFilePath}\"";
             }
             else
@@ -97,7 +98,7 @@ public class UnrealService : IUnrealService
 
     public void InitializeExport()
     {
-        if(Directory.Exists(EXPORT_DIRECTORY)) 
+        if (Directory.Exists(EXPORT_DIRECTORY))
         {
             Directory.Delete(EXPORT_DIRECTORY, true);
         }
