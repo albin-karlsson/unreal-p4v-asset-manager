@@ -1,4 +1,5 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
+using System;
 using System.Configuration;
 using System.Data;
 using System.Windows;
@@ -16,20 +17,20 @@ namespace UnrealExporter.UI
 
         public App()
         {
+            // Register services as singletons, assuming they are stateless or shared
             var serviceCollection = new ServiceCollection();
-
             serviceCollection.AddScoped<IFileService, FileManager>();
-            serviceCollection.AddScoped<IPerforceService, PerforceManager>();
             serviceCollection.AddScoped<IUnrealService, UnrealManager>();
+            serviceCollection.AddScoped<IPerforceService, PerforceManager>();
+
+            serviceCollection.AddSingleton<MainWindow>();
 
             ServiceProvider = serviceCollection.BuildServiceProvider();
         }
 
-        protected override void OnStartup(StartupEventArgs e)
+        private void OnStartup(object sender, StartupEventArgs e)
         {
-            base.OnStartup(e);
-
-            var mainWindow = ServiceProvider.GetRequiredService<MainWindow>();
+            var mainWindow = ServiceProvider.GetService<MainWindow>();
 
             mainWindow.Show();
         }

@@ -111,7 +111,7 @@ namespace UnrealExporter.UI
             {
                 PerforceManager = new();
 
-                bool isSuccessfulLogin = PerforceManager.LogIn(trimmedUsername, trimmedPassword);
+                bool isSuccessfulLogin = _perforceService.LogIn(trimmedUsername, trimmedPassword);
 
                 if (!isSuccessfulLogin)
                 {
@@ -120,7 +120,7 @@ namespace UnrealExporter.UI
                     return;
                 }
 
-                List<string>? workspaces = PerforceManager.GetWorkspaces();
+                List<string>? workspaces = _perforceService.GetWorkspaces();
 
                 if (workspaces != null)
                 {

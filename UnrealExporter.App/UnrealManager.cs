@@ -23,6 +23,11 @@ public class UnrealManager : IUnrealService
     private string _pythonScriptDestinationPath; // Destination path for the script in D:/
     string _outputFolder = "C:/UnrealExport";
 
+    public UnrealManager()
+    {
+        
+    }
+
     public UnrealManager(string unrealEnginePath, string projectFilePath, bool exportMeshes, bool exportTextures, string? meshesInputDirectory, string? texturesInputDirectory)
     {
         _unrealEnginePath = unrealEnginePath;

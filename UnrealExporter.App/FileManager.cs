@@ -25,6 +25,11 @@ public class FileManager : IFileService
     public bool TextureConversionSuccessful { get; set; }
     public List<string> ExportedFiles { get; set; } = new();
 
+    public FileManager()
+    {
+
+    }
+
     public FileManager(string destinationDirectory, bool overwriteFiles, bool exportMeshes, bool exportTextures, bool convertTextures)
     {
         _overwriteFiles = overwriteFiles;
