@@ -5,44 +5,32 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using UnrealExporter.App.Interfaces;
+using UnrealExporter.App.Models;
 
 namespace UnrealExporter.App;
 
-public class FileManager : IFileService
+public class FileService : IFileService
 {
-    private string _perforceDestinationDirectory;
-    private readonly string sourceDirectory = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Deps");
-    private readonly string ddsExecutable = "_dds.exe";
-    private readonly string texConvExecutable = "_texConv.exe";
-    private readonly string texDiagExecutable = "_texdiag.exe";
-    private readonly string _outputFolder = "C:/UnrealExport";
-    private readonly bool _overwriteFiles;
+    private const string EXPORT_DIRECTORY = "C:/UnrealExport";
+    private readonly string APP_DEPS = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Deps");
+    private const string DDS_EXE = "_dds.exe";
+    private const string TEX_CONV_EXE = "_textConv.exe";
+    private const string TEX_DIAG_EXE = "_texdiag.exe";
+
     private bool _exportMeshes;
     private bool _exportTextures;
-    private bool _convertTextures;
-    private string _texturesOutputDirectory;
 
     public bool TextureConversionSuccessful { get; set; }
     public List<string> ExportedFiles { get; set; } = new();
 
-    public FileManager()
+    public FileService()
     {
 
-    }
-
-    public FileManager(string destinationDirectory, bool overwriteFiles, bool exportMeshes, bool exportTextures, bool convertTextures)
-    {
-        _overwriteFiles = overwriteFiles;
-        _exportMeshes = exportMeshes;
-        _exportTextures = exportTextures;
-        _convertTextures = convertTextures;
-        _texturesOutputDirectory = Path.Combine(_outputFolder, "Textures");
-        _perforceDestinationDirectory = destinationDirectory;
     }
 
     public bool CheckExistingOutputDirectory()
     {
-        if(Path.Exists(_outputFolder))
+        if(Path.Exists(EXPORT_DIRECTORY))
         {
             return true;
         }
@@ -50,25 +38,21 @@ public class FileManager : IFileService
         return false;
     }
 
-    public void ConvertTextures()
+    public void ConvertTextures(ExportConfig exportConfig)
     {
-        if (_exportTextures && _convertTextures)
+        if (exportConfig.ExportTextures && exportConfig.ConvertTextures)
         {
             Console.WriteLine(@"Copying executables to C:\UnrealExport\Textures\");
 
-            // Copy the executables
-            CopyFile(ddsExecutable);
-            CopyFile(texConvExecutable);
-            CopyFile(texDiagExecutable);
+            CopyFile(DDS_EXE);
+            CopyFile(TEX_CONV_EXE);
+            CopyFile(TEX_DIAG_EXE);
 
-            // Run the _dds.exe after copying
-            Console.WriteLine("Running DDS conversion.");
             RunDDSExecutable();
 
             if (CheckForSuccess())
             {
                 Console.WriteLine("DDS conversion successful.");
-                // TODO: Really remove pngs?
                 Console.WriteLine("Removing PNGs and executables.");
                 CleanUp();
 
@@ -77,8 +61,6 @@ public class FileManager : IFileService
             else
             {
                 TextureConversionSuccessful = false;
-
-                return;
             }
         }
     }
@@ -88,7 +70,7 @@ public class FileManager : IFileService
     /// </summary>
     /// <param name="selectedFiles"></param>
     /// <returns>An array of bools where the first bool indicates if meshes should be exported, and the second one if textures should be exported</returns>
-    public bool[] CheckSelectedFilesFiletypes(string[] selectedFiles)
+    public bool[] SetSelectedFilesFileTypes(string[] selectedFiles)
     {
         _exportMeshes = selectedFiles.Any(f => Path.GetExtension(f).ToLower().Contains("fbx"));
         _exportTextures = selectedFiles.Any(f => Path.GetExtension(f).ToLower().Contains("dds") || Path.GetExtension(f).ToLower().Contains("png"));
@@ -102,8 +84,8 @@ public class FileManager : IFileService
     {
         try
         {
-            string sourceFilePath = Path.Combine(sourceDirectory, fileName);
-            string destinationFilePath = Path.Combine(_texturesOutputDirectory, fileName);
+            string sourceFilePath = Path.Combine(APP_DEPS, fileName);
+            string destinationFilePath = Path.Combine(Path.Combine(EXPORT_DIRECTORY, "Textures"), fileName);
 
             // Check if the source file exists before attempting to copy
             if (File.Exists(sourceFilePath))
@@ -127,26 +109,26 @@ public class FileManager : IFileService
     {
         try
         {
-            string ddsPath = Path.Combine(_texturesOutputDirectory, ddsExecutable);
+            string ddsPath = Path.Combine(Path.Combine(EXPORT_DIRECTORY, "Textures"), DDS_EXE);
 
             if (File.Exists(ddsPath))
             {
                 Process process = new Process();
                 process.StartInfo.FileName = ddsPath;
-                process.StartInfo.WorkingDirectory = _texturesOutputDirectory;
+                process.StartInfo.WorkingDirectory = Path.Combine(EXPORT_DIRECTORY, "Textures");
                 process.Start(); // Start the _dds.exe process
                 process.WaitForExit(); // Optionally wait for the process to exit
 
-                Console.WriteLine($"{ddsExecutable} executed successfully.");
+                Console.WriteLine($"{DDS_EXE} executed successfully.");
             }
             else
             {
-                Console.WriteLine($"{ddsExecutable} does not exist in the destination directory.");
+                Console.WriteLine($"{DDS_EXE} does not exist in the destination directory.");
             }
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Error running {ddsExecutable}: {ex.Message}");
+            Console.WriteLine($"Error running {DDS_EXE}: {ex.Message}");
         }
     }
 
@@ -155,7 +137,7 @@ public class FileManager : IFileService
     {
         try
         {
-            var pngFiles = Directory.GetFiles(_texturesOutputDirectory, "*.png");
+            var pngFiles = Directory.GetFiles(Path.Combine(EXPORT_DIRECTORY, "Textures"), "*.png");
 
             foreach (var file in pngFiles)
             {
@@ -174,11 +156,11 @@ public class FileManager : IFileService
     {
         try
         {
-            string[] executables = { ddsExecutable, texConvExecutable, texDiagExecutable };
+            string[] executables = { DDS_EXE, TEX_CONV_EXE, TEX_DIAG_EXE };
 
             foreach (var exe in executables)
             {
-                string exePath = Path.Combine(_texturesOutputDirectory, exe);
+                string exePath = Path.Combine(Path.Combine(EXPORT_DIRECTORY, "Textures"), exe);
 
                 if (File.Exists(exePath))
                 {
@@ -208,7 +190,7 @@ public class FileManager : IFileService
     }
 
     // Method to move the folders to the workspace folder
-    public void MoveDirectories(string[] filesToExport)
+    public void MoveDirectories(string[] filesToExport, ExportConfig exportConfig)
     {
         try
         {
@@ -216,27 +198,27 @@ public class FileManager : IFileService
 
             if(_exportMeshes)
             {
-                sourceDirectories.Add(Path.Combine(_outputFolder, "Meshes"));
+                sourceDirectories.Add(Path.Combine(EXPORT_DIRECTORY, "Meshes"));
             }
 
             if(_exportTextures)
             {
-                sourceDirectories.Add(Path.Combine(_outputFolder, "Textures"));
+                sourceDirectories.Add(Path.Combine(EXPORT_DIRECTORY, "Textures"));
 
             }
 
-            if (!Directory.Exists(_perforceDestinationDirectory))
+            if (!Directory.Exists(exportConfig.DestinationDirectory))
             {
-                Directory.CreateDirectory(_perforceDestinationDirectory);
+                Directory.CreateDirectory(exportConfig.DestinationDirectory);
             }
 
             // Move the folders to the folder in Perforce
             foreach (var sourceDirectory in sourceDirectories) 
             {
-                MoveFolder(filesToExport, sourceDirectory, _perforceDestinationDirectory);
+                MoveDirectory(filesToExport, sourceDirectory, exportConfig);
             }
 
-            Console.WriteLine($"Moved folder(s) to {_perforceDestinationDirectory}");
+            Console.WriteLine($"Moved folder(s) to {exportConfig.DestinationDirectory}");
         }
         catch (Exception ex)
         {
@@ -249,9 +231,9 @@ public class FileManager : IFileService
         try
         {
             // Get the number of .dds files
-            var ddsFiles = Directory.GetFiles(_texturesOutputDirectory, "*.dds");
+            var ddsFiles = Directory.GetFiles(Path.Combine(EXPORT_DIRECTORY, "Textures"), "*.dds");
             // Get the number of .png files
-            var pngFiles = Directory.GetFiles(_texturesOutputDirectory, "*.png");
+            var pngFiles = Directory.GetFiles(Path.Combine(EXPORT_DIRECTORY, "Textures"), "*.png");
 
             // Compare the counts of .dds and .png files
             if (ddsFiles.Length == pngFiles.Length || ddsFiles.Length > pngFiles.Length)
@@ -273,19 +255,16 @@ public class FileManager : IFileService
     }
 
     // Method to remove the read-only attribute from all files in a directory
-    private void RemoveReadOnlyAttributeFromFiles(string[] sourceFiles, string destinationFolder)
+    private void RemoveReadOnlyAttributeFromFiles(string[] sourceFiles, ExportConfig exportConfig)
     {
         try
         {
-            //// Get all files in the source folder (recursively)
-            //var sourceFiles = Directory.GetFiles(sourceFolder, "*.*", SearchOption.AllDirectories);
-
             foreach (var sourceFile in sourceFiles)
             {
                 string fileName = Path.GetFileName(sourceFile); 
-                string destinationFile = Path.Combine(destinationFolder, fileName);
+                string destinationFile = Path.Combine(exportConfig.DestinationDirectory, fileName);
 
-                if (File.Exists(destinationFile) && _overwriteFiles)
+                if (File.Exists(destinationFile) && exportConfig.OverwriteFiles)
                 {
                     FileInfo fileInfo = new FileInfo(destinationFile);
 
@@ -303,7 +282,7 @@ public class FileManager : IFileService
         }
     }
 
-    private void RemoveFilesPartOfThisExport(string[] sourceFiles, string destinationFolder)
+    private void RemoveFilesPartOfThisExport(string[] sourceFiles, ExportConfig exportConfig)
     {
         try
         {
@@ -312,9 +291,9 @@ public class FileManager : IFileService
             foreach (var sourceFile in sourceFiles)
             {
                 string fileName = Path.GetFileName(sourceFile);
-                string destinationFile = Path.Combine(destinationFolder, fileName);
+                string destinationFile = Path.Combine(exportConfig.DestinationDirectory, fileName);
 
-                if (File.Exists(destinationFile) && _overwriteFiles)
+                if (File.Exists(destinationFile) && exportConfig.OverwriteFiles)
                 {
                     File.Delete(destinationFile); 
                     Console.WriteLine($"Deleted file: {destinationFile}");
@@ -328,33 +307,28 @@ public class FileManager : IFileService
     }
 
     // Method to move a folder from source to destination
-    private void MoveFolder(string[] filesToExport, string sourceFolder, string destinationFolder)
+    private void MoveDirectory(string[] filesToExport, string sourceDirectory, ExportConfig exportConfig)
     {
-        /*
-         * TODO:
-         * If only meshes are selected or only textures, Path.GetFileName should not be added
-         */
-
         try
         {
-            if (Directory.Exists(sourceFolder))
+            if (Directory.Exists(sourceDirectory))
             {
                 string destinationPath;
 
                 if (_exportMeshes && _exportTextures)
                 {
-                    destinationPath = Path.Combine(destinationFolder, Path.GetFileName(sourceFolder));
+                    destinationPath = Path.Combine(exportConfig.DestinationDirectory, Path.GetFileName(sourceDirectory));
                 }
                 else
                 {
-                    destinationPath = Path.Combine(destinationFolder);
+                    destinationPath = Path.Combine(exportConfig.DestinationDirectory);
                 }               
 
                 if (Directory.Exists(destinationPath))
                 {
-                    RemoveReadOnlyAttributeFromFiles(filesToExport, destinationPath);
+                    RemoveReadOnlyAttributeFromFiles(filesToExport, exportConfig);
 
-                    RemoveFilesPartOfThisExport(filesToExport, destinationPath);
+                    RemoveFilesPartOfThisExport(filesToExport, exportConfig);
                 }
 
                 foreach (var fileToExport in filesToExport)
@@ -374,31 +348,30 @@ public class FileManager : IFileService
             }
             else
             {
-                Console.WriteLine($"Source folder {sourceFolder} does not exist.");
+                Console.WriteLine($"Source directory {sourceDirectory} does not exist.");
             }
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Error moving folder {sourceFolder}: {ex.Message}");
+            Console.WriteLine($"Error moving directory {sourceDirectory}: {ex.Message}");
         }
     }
 
-    public List<string> CheckDestinationFolderContent()
+    public List<string> CheckDestinationDirectoryContent(ExportConfig exportConfig)
     {
         List<string> filesToExclude = new();
-        // Check meshes
+
         if (_exportMeshes)
         {
-            string meshPath = Path.Combine(_perforceDestinationDirectory, "Meshes");
+            string meshPath = Path.Combine(exportConfig.DestinationDirectory, "Meshes");
             if (Directory.Exists(meshPath))
             {
                 filesToExclude.AddRange(Directory.GetFiles(meshPath, "*.fbx", SearchOption.AllDirectories));
             }
         }
-        // Check textures
         if (_exportTextures)
         {
-            string texturePath = Path.Combine(_perforceDestinationDirectory, "Textures");
+            string texturePath = Path.Combine(exportConfig.DestinationDirectory, "Textures");
             if (Directory.Exists(texturePath))
             {
                 filesToExclude.AddRange(Directory.GetFiles(texturePath, "*.dds", SearchOption.AllDirectories));
@@ -409,9 +382,9 @@ public class FileManager : IFileService
         return filesToExclude;
     }
 
-    public string[] CheckFilesToExport()
+    public string[] GetExportedFiles()
     {
-        string[] filesToExport = Directory.GetFiles(_outputFolder, "*.*", SearchOption.AllDirectories);
+        string[] filesToExport = Directory.GetFiles(EXPORT_DIRECTORY, "*.*", SearchOption.AllDirectories);
 
         return filesToExport;
     }

@@ -1,9 +1,12 @@
-﻿namespace UnrealExporter.App.Interfaces
+﻿using Perforce.P4;
+
+namespace UnrealExporter.App.Interfaces
 {
     public interface IPerforceService
     {
         public string WorkspacePath { get; set; }
         public string SubmitMessage { get; set; }
+        public ConnectionStatus ConnectionStatus { get; }
 
 
         public List<string>? GetWorkspaces();

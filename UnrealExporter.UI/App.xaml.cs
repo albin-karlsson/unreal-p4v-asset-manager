@@ -19,9 +19,9 @@ namespace UnrealExporter.UI
         {
             // Register services as singletons, assuming they are stateless or shared
             var serviceCollection = new ServiceCollection();
-            serviceCollection.AddScoped<IFileService, FileManager>();
-            serviceCollection.AddScoped<IUnrealService, UnrealManager>();
-            serviceCollection.AddScoped<IPerforceService, PerforceManager>();
+            serviceCollection.AddSingleton<IFileService, FileService>();
+            serviceCollection.AddSingleton<IUnrealService, UnrealService>();
+            serviceCollection.AddSingleton<IPerforceService, PerforceManager>();
 
             serviceCollection.AddSingleton<MainWindow>();
 

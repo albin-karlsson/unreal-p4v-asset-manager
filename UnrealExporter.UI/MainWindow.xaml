@@ -53,16 +53,16 @@
         <CheckBox x:Name="xboxUseDefaultUnrealEnginePath"  Grid.Row="10" Grid.Column="1" Content="Use default Unreal Engine 5.3 path" FontSize="10" Background="#3f3f3f" Foreground="#a19faf" VerticalContentAlignment="Center" VerticalAlignment="Center" BorderThickness="0" Click="xboxUseDefaultUnrealEnginePath_Clicked" />
 
         <Label Grid.Row="11" Grid.Column="1" Content="Unreal meshes directory" Foreground="#a19faf" Padding="0 5" VerticalAlignment="Bottom"/>
-        <TextBox x:Name="txtUnrealMeshesDirectory" Grid.Row="12" Grid.Column="1" IsReadOnly="True" Background="#3f3f3f" Foreground="Azure" VerticalContentAlignment="Center" VerticalAlignment="Stretch"/>
-        <Button x:Name="btnBrowseUnrealMeshesDirectory" Height="25" Grid.Row="12" Grid.Column="2" Content="Browse Unreal meshes" Width="140" Background="#a19faf" Foreground="#121212" VerticalAlignment="Center" Padding="0" HorizontalAlignment="Center" Margin="10 0 0 0" Click="btnBrowseUnrealSource_Click"/>
+        <TextBox x:Name="txtMeshesSourceDirectory" Grid.Row="12" Grid.Column="1" IsReadOnly="True" Background="#3f3f3f" Foreground="Azure" VerticalContentAlignment="Center" VerticalAlignment="Stretch"/>
+        <Button x:Name="btnBrowseMeshesSourceDirectory" Height="25" Grid.Row="12" Grid.Column="2" Content="Browse Unreal meshes" Width="140" Background="#a19faf" Foreground="#121212" VerticalAlignment="Center" Padding="0" HorizontalAlignment="Center" Margin="10 0 0 0" Click="btnBrowseUnrealSource_Click"/>
 
         <Label Grid.Row="13" Grid.Column="1" Content="Unreal textures directory" Foreground="#a19faf" Padding="0 5" VerticalAlignment="Bottom"/>
-        <TextBox x:Name="txtUnrealTexturesDirectory" Grid.Row="14" Grid.Column="1" IsReadOnly="True" Background="#3f3f3f" Foreground="Azure" VerticalContentAlignment="Center" VerticalAlignment="Stretch"/>
-        <Button x:Name="btnBrowseUnrealTexturesDirectory" Height="25" Grid.Row="14" Grid.Column="2" Content="Browse Unreal textures" Width="140" Background="#a19faf" Foreground="#121212" VerticalAlignment="Center" Padding="0" HorizontalAlignment="Center" Margin="10 0 0 0" Click="btnBrowseUnrealSource_Click"/>
+        <TextBox x:Name="txtTexturesSourceDirectory" Grid.Row="14" Grid.Column="1" IsReadOnly="True" Background="#3f3f3f" Foreground="Azure" VerticalContentAlignment="Center" VerticalAlignment="Stretch"/>
+        <Button x:Name="btnBrowseTexturesSourceDirectory" Height="25" Grid.Row="14" Grid.Column="2" Content="Browse Unreal textures" Width="140" Background="#a19faf" Foreground="#121212" VerticalAlignment="Center" Padding="0" HorizontalAlignment="Center" Margin="10 0 0 0" Click="btnBrowseUnrealSource_Click"/>
 
-        <Label Grid.Row="15" Grid.Column="1" Content="Output directory" Foreground="#a19faf" Padding="0 5" VerticalAlignment="Bottom"/>
-        <TextBox x:Name="txtOutputDirectory" Grid.Row="16" Grid.Column="1" IsReadOnly="True" Background="#3f3f3f" Foreground="Azure" VerticalContentAlignment="Center" VerticalAlignment="Stretch"/>
-        <Button x:Name="btnBrowseOutputDirectory" Height="25" Grid.Row="16" Grid.Column="2" Content="Browse output" Width="140" Background="#a19faf" Foreground="#121212" VerticalAlignment="Center" Padding="0" HorizontalAlignment="Center" Margin="10 0 0 0" Click="btnBrowseOutputDirectory_Click" />
+        <Label Grid.Row="15" Grid.Column="1" Content="Destination directory" Foreground="#a19faf" Padding="0 5" VerticalAlignment="Bottom"/>
+        <TextBox x:Name="txtDestinationDirectory" Grid.Row="16" Grid.Column="1" IsReadOnly="True" Background="#3f3f3f" Foreground="Azure" VerticalContentAlignment="Center" VerticalAlignment="Stretch"/>
+        <Button x:Name="btnBrowseDestinationDirectory" Height="25" Grid.Row="16" Grid.Column="2" Content="Browse destination" Width="140" Background="#a19faf" Foreground="#121212" VerticalAlignment="Center" Padding="0" HorizontalAlignment="Center" Margin="10 0 0 0" Click="btnBrowseDestinationDirectory_Click" />
 
         <Label Grid.Row="6" Grid.Column="1" Content="Perforce workspace" Foreground="#a19faf" Padding="0 5" VerticalAlignment="Bottom"/>
         <ComboBox x:Name="cboxPerforceWorkspace" Grid.Row="7" Grid.Column="1" VerticalAlignment="Stretch" SelectionChanged="cboxPerforceWorkspace_SelectionChanged" />

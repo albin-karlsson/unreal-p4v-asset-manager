@@ -12,7 +12,7 @@ namespace UnrealExporter.UI
         private ObservableCollection<FileItem> _fileItems = new ObservableCollection<FileItem>();
         private string[] _allFiles;
 
-        public string[] FilesToExport { get; private set; }
+        public string[] SelectedFiles { get; private set; }
         public string SubmitMessage { get; private set; }
 
         public PreviewWindow(string[] filesToExport)
@@ -45,7 +45,7 @@ namespace UnrealExporter.UI
 
         private void Submit_Click(object sender, RoutedEventArgs e)
         {
-            FilesToExport = _fileItems.Where(item => item.IsSelected)
+            SelectedFiles = _fileItems.Where(item => item.IsSelected)
                 .Select(item => item.FullName)
                 .ToArray()!;
 

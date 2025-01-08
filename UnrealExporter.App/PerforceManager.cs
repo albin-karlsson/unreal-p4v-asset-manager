@@ -12,35 +12,31 @@ namespace UnrealExporter.App;
 
 public class PerforceManager : IPerforceService
 {
-    string _serverUri = "ssl:perforce.tga.learnet.se:1666";
-    string _workspace;
+    private const string SERVER_URI = "ssl:perforce.tga.learnet.se:1666";
 
+    private string _workspace;
     private Server _server;
     private Repository _repository;
-    private Connection _connection;
 
     public string WorkspacePath { get; set; }
     public string SubmitMessage { get; set; }
 
+    public ConnectionStatus ConnectionStatus { get { return  _repository.Connection.Status; } }
+
     public PerforceManager()
     {
-        _server = new Server(new ServerAddress(_serverUri));
+        _server = new Server(new ServerAddress(SERVER_URI));
         _repository = new Repository(_server);
-        _connection = _repository.Connection;
     }
 
     public List<string>? GetWorkspaces()
     {
-        Console.WriteLine("Retrieving workspaces...");
-
         try
         {
-            // Define an option to filter the workspaces by user
             Options options = new();
 
-            // Retrieve the list of clients (workspaces) for the user
             IList<Client> clients = _repository.GetClients(options)
-                                               .Where(c => c.OwnerName == _connection.UserName)
+                                               .Where(c => c.OwnerName == _repository.Connection.UserName)
                                                .ToList();
 
             if (clients != null && clients.Count > 0)
@@ -76,13 +72,10 @@ public class PerforceManager : IPerforceService
     {
         _workspace = workspace;
 
-        // Get the client workspace
         Client client = _repository.GetClient(workspace);
 
-        // Set the client's workspace in the connection
-        _connection.Client = client;
-
-        WorkspacePath = @$"C:\Users\{_connection.UserName}\Perforce\{_workspace}\";
+         _repository.Connection.Client = client;
+        WorkspacePath = @$"C:\Users\{ _repository.Connection.UserName}\Perforce\{_workspace}\";
 
         // Sync files
         Sync();
@@ -92,51 +85,35 @@ public class PerforceManager : IPerforceService
     {
         Console.WriteLine("Attempting to login to Perforce.");
 
-        try
+            _repository.Connection.UserName = username;
+
+        if ( _repository.Connection.Connect(null))
         {
-            // Open a connection to Perforce
-            _connection.UserName = username;
-            //_connection.Client = new Client { Name = _workspace };
+            Console.WriteLine("Connected to Perforce.");
 
-            if (_connection.Connect(null))
-            {
-                Console.WriteLine("Connected to Perforce.");
+                _repository.Connection.Login(password);
 
-                // Log in to the server
-                _connection.Login(password);
-
-                return true;
-            }
-
-            return false;
+            return true;
         }
-        catch (Exception ex)
-        {
-            return false;
-        }
+
+        return false;
+
     }
 
     public void Disconnect()
     {
-        _connection.Disconnect();
+         _repository.Connection.Disconnect();
     }
 
     public string[] GetUnrealProjectPathFromPerforce()
     {
-        Console.WriteLine("Getting Unreal project path from Perforce.");
-
-        // Define the path to the specific file you're interested in
-        // Search for .uproject files in the directory
         string[] projectFiles = Directory.GetFiles(WorkspacePath, "*.uproject", SearchOption.AllDirectories);
 
-        // Check if any .uproject file was found
         if (projectFiles.Length > 0)
         {
-            // Extract the directory from the file path
             return projectFiles;
         }
 
-        // If no .uproject files are found, return an empty array
         return new string[0];
     }
 
@@ -149,7 +126,7 @@ public class PerforceManager : IPerforceService
         // TODO: Return the error message to the UI
         try
         {
-            _connection.Client.SyncFiles(syncOptions, null);
+             _repository.Connection.Client.SyncFiles(syncOptions, null);
         }
         catch(Exception e)
         {
@@ -295,9 +272,9 @@ public class PerforceManager : IPerforceService
                 changelist.Files.Add(file);
             }
 
-            changelist.OwnerName = _connection.UserName;
+            changelist.OwnerName =  _repository.Connection.UserName;
             changelist.ClientId = _workspace;
-            changelist.initialize(_connection);
+            changelist.initialize( _repository.Connection);
 
             changelist = _repository.CreateChangelist(changelist);
 

@@ -6,16 +6,16 @@ using System.Threading.Tasks;
 
 namespace UnrealExporter.App.Models
 {
-    public class ExportConfiguration
+    public class ExportConfig
     {
         public required string UnrealEnginePath { get; init; }
-        public required string ProjectFile { get; init; }
-        public string[] FilesToExclude { get; set; } = Array.Empty<string>(); 
+        public required string UnrealProjectFile { get; init; }
+        public List<string>? FilesToExcludeFromExport { get; set; }
         public required bool ExportMeshes { get; set; }
         public required bool ExportTextures { get; set; }
-        public string? MeshesDirectory { get; init; }
-        public string? TexturesDirectory { get; init; }
-        public required string OutputDirectory { get; init; }
+        public string? MeshesSourceDirectory { get; init; }
+        public string? TexturesSourceDirectory { get; init; }
+        public required string DestinationDirectory { get; init; }
         public required bool OverwriteFiles { get; init; }
         public required bool ConvertTextures { get; init; }
     }

@@ -5,6 +5,6 @@ namespace UnrealExporter.App.Interfaces
     public interface IUnrealService
     {
         void InitializeExport();
-        Task<ExportResult> ExportAssetsAsync(ExportConfiguration exportConfig);
+        Task<ExportResult> ExportAssetsAsync(ExportConfig exportConfig);
     }
 }
