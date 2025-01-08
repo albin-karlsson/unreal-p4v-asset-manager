@@ -1,0 +1,36 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <UseWPF>true</UseWPF>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <None Remove="Images\icon.png" />
+    <None Remove="Images\wormhole-logo.png" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Content Include="Images\icon.png">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Images\wormhole-logo.png">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="p4api.net.core" Version="2023.2.255.3501" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\UnrealExporter.App\UnrealExporter.App.csproj" />
+  </ItemGroup>
+
+	<Target Name="CreateShortcut" AfterTargets="PostBuildEvent">
+		<Exec Command="powershell -Command &quot;$shortcut = (New-Object -ComObject WScript.Shell).CreateShortcut('$(TargetDir)Wormhole.lnk'); $shortcut.TargetPath = '$(TargetDir)$(AssemblyName).exe'; $shortcut.Save();&quot;" />
+	</Target>
+</Project>

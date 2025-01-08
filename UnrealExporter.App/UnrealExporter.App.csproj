@@ -1,0 +1,35 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <None Remove="Deps\_dds.exe" />
+    <None Remove="Deps\_texconv.exe" />
+    <None Remove="Deps\_texdiag.exe" />
+    <None Remove="Scripts\SC_UE_ExportAssetsFromUnreal.py" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Content Include="Deps\_dds.exe">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Deps\_texconv.exe">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Deps\_texdiag.exe">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Scripts\SC_UE_ExportAssetsFromUnreal.py">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="p4api.net.core" Version="2023.2.255.3501" />
+  </ItemGroup>
+
+</Project>

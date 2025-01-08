@@ -1,0 +1,72 @@
+﻿<Window x:Class="UnrealExporter.UI.ConfirmationWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:UnrealExporter.UI"
+        mc:Ignorable="d"
+        Title="Wormhole confirmation" Height="500" Width="500" Background="#121212" ResizeMode="NoResize"
+        Icon="/Images/icon.png">
+    <Grid>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="20"/>
+            <ColumnDefinition Width="*"/>
+            <ColumnDefinition Width="20"/>
+        </Grid.ColumnDefinitions>
+
+        <Grid.RowDefinitions>
+            <RowDefinition Height="20"/>
+            <RowDefinition Height="auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="auto"/>
+            <RowDefinition Height="auto"/>
+            <RowDefinition Height="20"/>
+        </Grid.RowDefinitions>
+
+        <!-- Header -->
+        <Label Grid.Row="1" Grid.Column="1"
+               Content="Files submitted successfully" 
+               Foreground="#a19faf"
+               Padding="0,5"
+               VerticalAlignment="Bottom"/>
+
+        <!-- ListView -->
+        <ListView Name="lstFiles" 
+                  Grid.Row="2" Grid.Column="1"
+                  MinHeight="200"
+                  MaxHeight="300"
+                  ScrollViewer.VerticalScrollBarVisibility="Auto" 
+                  ScrollViewer.IsDeferredScrollingEnabled="True">
+            <ListView.View>
+                <GridView>
+                    <GridViewColumn Header="File name" 
+                                  DisplayMemberBinding="{Binding}"
+                                  Width="auto"/>
+                </GridView>
+            </ListView.View>
+        </ListView>
+
+        <!-- Submit Message Display -->
+        <StackPanel Grid.Row="3" Grid.Column="1" Margin="0,10">
+            <Label Content="Submit message" 
+                   Foreground="#a19faf"
+                   Padding="0,5"
+                   VerticalAlignment="Bottom"/>
+            <TextBlock Name="txtSubmitMessage"
+                      Height="27"
+                      Background="#3f3f3f" 
+                      Foreground="Azure" 
+                      Padding="5,5,5,5"/>
+        </StackPanel>
+
+        <!-- Button -->
+        <Button Grid.Row="4" Grid.Column="1"
+                Content="OK" 
+                Width="100" Height="25"
+                Margin="0,10"
+                Background="#a19faf" 
+                Foreground="#121212"
+                Click="OK_Click"
+                HorizontalAlignment="Center"/>
+    </Grid>
+</Window>
