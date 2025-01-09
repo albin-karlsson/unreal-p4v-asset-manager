@@ -81,6 +81,10 @@ namespace UnrealExporter.UI
                 {
                     validationErrors.Add("Not connected to Perforce.");
                 }
+                else if(string.IsNullOrEmpty(cboxPerforceWorkspace.SelectedItem?.ToString()))
+                {
+                    validationErrors.Add("No selected Perforce workspace.");
+                }
 
                 if (!(xboxExportMeshes.IsChecked ?? false) && !(xboxExportTextures.IsChecked ?? false))
                 {
@@ -173,7 +177,6 @@ namespace UnrealExporter.UI
             catch(P4Exception ex)
             {
                 ResetUI();
-
                 ShowError(ex.Message);
             }
             catch (Exception ex) 

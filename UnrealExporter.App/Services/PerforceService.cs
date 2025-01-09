@@ -90,7 +90,11 @@ public class PerforceService : IPerforceService
         }
         catch (P4Exception ex)
         {
-            throw new ServiceException(ex.Message);
+            throw;
+        }
+        catch(ServiceException ex)
+        {
+            throw;
         }
         catch (Exception ex)
         {
