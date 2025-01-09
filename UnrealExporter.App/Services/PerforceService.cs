@@ -45,15 +45,15 @@ public class PerforceService : IPerforceService
         }
     }
 
-    public List<string>? GetWorkspaces()
+    public async Task<List<string>?> GetWorkspaces()
     {
         try
         {
             Options options = new();
-            return _repository?.GetClients(options)
+            return await Task.Run(() => _repository?.GetClients(options)
                              ?.Where(c => c.OwnerName == _repository.Connection.UserName)
                              ?.Select(c => c.Name)
-                             ?.ToList();
+                             ?.ToList());
         }
         catch (P4Exception ex)
         {
@@ -98,7 +98,7 @@ public class PerforceService : IPerforceService
         }
     }
 
-    public bool LogIn(string username, string password)
+    public async Task<bool> LogIn(string username, string password)
     {
         try
         {
@@ -111,7 +111,8 @@ public class PerforceService : IPerforceService
 
             if (_repository.Connection.Connect(null))
             {
-                _repository.Connection.Login(password);
+                await Task.Run(() => _repository.Connection.Login(password));
+
                 return true;
             }
             else

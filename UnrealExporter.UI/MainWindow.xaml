@@ -7,6 +7,10 @@
         mc:Ignorable="d"
         Title="Wormhole v2.0" Height="700" Width="500" Background="#121212" ResizeMode="NoResize"
         Icon="/Images/icon.png">
+    <Window.Resources>
+        <local:BoolToVis x:Key="BoolToVis" />
+    </Window.Resources>
+
     <Grid>
         <!-- Grid definitions -->
         <Grid.ColumnDefinitions>
@@ -75,5 +79,16 @@
         <CheckBox x:Name="xboxConvertTexturesToDDS" IsEnabled="False" ToolTip="Convert textures to DDS" Grid.Row="20" Grid.Column="2" Content="Convert textures to DDS" HorizontalAlignment="Left" VerticalAlignment="Center" Background="#3f3f3f" Foreground="#a19faf" />
         <CheckBox x:Name="xboxExportMeshes" ToolTip="Export meshes from Unreal" Grid.Row="19" Grid.Column="2" Content="Export meshes" HorizontalAlignment="Right" VerticalAlignment="Center" Background="#3f3f3f"  Foreground="#a19faf" />
         <CheckBox x:Name="xboxExportTextures" ToolTip="Export textures from Unreal" Grid.Row="19" Grid.Column="2" Content="Export textures" HorizontalAlignment="Left" VerticalAlignment="Center" Background="#3f3f3f" Foreground="#a19faf" Checked="xboxExportTextures_Checked" Unchecked="xboxExportTextures_Checked" />
-    </Grid> 
+
+        <Grid Grid.Row="0" Grid.RowSpan="22" Grid.Column="0" Grid.ColumnSpan="4"
+      Visibility="{Binding IsLoading, Converter={StaticResource BoolToVis}}"
+      Panel.ZIndex="999" Background="#80000000">
+            <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
+                <ProgressBar IsIndeterminate="True"
+                     Width="100" 
+                     Height="20"/>
+                <TextBlock Text="Please wait..." HorizontalAlignment="Center" Foreground="White" Margin="0,10,0,0"/>
+            </StackPanel>
+        </Grid>
+    </Grid>
 </Window>

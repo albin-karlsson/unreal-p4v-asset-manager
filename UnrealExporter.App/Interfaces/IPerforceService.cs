@@ -9,9 +9,9 @@ namespace UnrealExporter.App.Interfaces
         public ConnectionStatus? ConnectionStatus { get; }
 
 
-        public List<string>? GetWorkspaces();
+        public Task<List<string>?> GetWorkspaces();
         public void Connect(string workspace);
-        public bool LogIn(string username, string password);
+        public Task<bool> LogIn(string username, string password);
         public void Disconnect();
         public string[] GetUnrealProjectPathFromPerforce();
         public void AddFilesToPerforce(List<string> exportedFiles);

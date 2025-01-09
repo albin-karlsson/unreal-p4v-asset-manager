@@ -2,6 +2,7 @@
 using Perforce.P4;
 using System.ComponentModel;
 using System.Data;
+using System.Globalization;
 using System.IO;
 using System.Numerics;
 using System.Runtime.CompilerServices;
@@ -25,7 +26,7 @@ using UnrealExporter.App.Services;
 
 namespace UnrealExporter.UI
 {
-    public partial class MainWindow : Window
+    public partial class MainWindow : Window, INotifyPropertyChanged
     {
         private const string DEFAULT_UE_5_3_PATH = @"C:\Program Files\Epic Games\UE_5.3\Engine\Binaries\Win64\UnrealEditor.exe";
 
@@ -38,6 +39,22 @@ namespace UnrealExporter.UI
         private string? _texturesSourceDirectory = null;
         private string? _selectedUnrealProjectFile = null;
 
+        public bool IsLoading
+        {
+            get => _isLoading;
+            set
+            {
+                if (_isLoading != value)
+                {
+                    _isLoading = value;
+                    OnPropertyChanged(nameof(IsLoading));
+                }
+            }
+        }
+        private bool _isLoading;
+
+        public event PropertyChangedEventHandler? PropertyChanged;
+
         public MainWindow(IFileService fileService, IUnrealService unrealService, IPerforceService perforceService, IAppConfig appConfig)
         {
             _fileService = fileService;
@@ -46,9 +63,13 @@ namespace UnrealExporter.UI
             _appConfig = appConfig;
 
             InitializeComponent();
+            this.DataContext = this;
             ResetUI();
         }
-
+        protected void OnPropertyChanged(string propertyName)
+        {
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+        }
         private bool ValidateExportRequirements()
         {
             try
@@ -102,7 +123,7 @@ namespace UnrealExporter.UI
             }
         }
 
-        private void btnGetPerforceWorkspaces_Click(object sender, RoutedEventArgs e)
+        private async void btnGetPerforceWorkspaces_Click(object sender, RoutedEventArgs e)
         {
             try
             {
@@ -113,14 +134,16 @@ namespace UnrealExporter.UI
 
                 if (trimmedUsername.Length > 0 && trimmedPassword.Length > 0)
                 {
-                    bool isSuccessfulLogin = _perforceService.LogIn(trimmedUsername, trimmedPassword);
+                    IsLoading = true;
+
+                    bool isSuccessfulLogin = await _perforceService.LogIn(trimmedUsername, trimmedPassword);
 
                     if (!isSuccessfulLogin)
                     {
                         throw new ServiceException("Failed to login to Perforce. Check your username and password and try again.");
                     }
 
-                    List<string>? workspaces = _perforceService.GetWorkspaces();
+                    List<string>? workspaces = await _perforceService.GetWorkspaces();
 
                     if (workspaces != null)
                     {
@@ -128,6 +151,8 @@ namespace UnrealExporter.UI
                         {
                             cboxPerforceWorkspace.Items.Add(workspace);
                         }
+
+                        IsLoading = false;
 
                         ShowSuccess($"{workspaces.Count()} Perforce workspaces retrieved!");
                     }
@@ -139,6 +164,13 @@ namespace UnrealExporter.UI
             }
             catch (Exception ex) {
                 ShowError(ex.Message);
+            }
+            finally
+            {
+                if(IsLoading)
+                {
+                    IsLoading = false;
+                }
             }
         }
 
@@ -198,7 +230,7 @@ namespace UnrealExporter.UI
 
                 if (_appConfig.ExportTextures)
                 {
-                    ProcessTextureConversion();
+                    await ProcessTextureConversion();
                 }
 
                 PreviewWindow previewWindow = new(exportedFiles);
@@ -245,21 +277,26 @@ namespace UnrealExporter.UI
             try
             {
                 _unrealService.InitializeExport();
+                IsLoading = true; 
                 var exportResult = await _unrealService.ExportAssetsAsync(filesToExcludeFromExport);
-
                 return exportResult;
             }
             catch (Exception ex)
             {
                 throw new Exception(ex.Message);
             }
+            finally
+            {
+                IsLoading = false; 
+            }
         }
 
-        private void ProcessTextureConversion()
+        private async Task ProcessTextureConversion()
         {
             try
             {
-                _fileService.ConvertTextures();
+                IsLoading = true;
+                await _fileService.ConvertTextures();
 
                 if (!_fileService.TextureConversionSuccessful)
                 {
@@ -270,10 +307,19 @@ namespace UnrealExporter.UI
             {
                 throw new Exception(ex.Message);
             }
+            finally
+            {
+                IsLoading = false;
+            }
         }
 
         private void ShowError(string errorMessage, string errorCaption = "Error")
         {
+            if(IsLoading)
+            {
+                IsLoading = false;
+            }
+
             MessageBox.Show(errorMessage, errorCaption, MessageBoxButton.OK, MessageBoxImage.Error);
         }
 
@@ -310,7 +356,7 @@ namespace UnrealExporter.UI
             // Set default values
             txtUnrealEnginePath.Text = DEFAULT_UE_5_3_PATH;
             xboxUseDefaultUnrealEnginePath.IsChecked = true;
-
+            IsLoading = false;
             SetSourceAndDestinationInputs(false);
         }
 
@@ -506,6 +552,22 @@ namespace UnrealExporter.UI
             {
                 ShowError(ex.Message);
             }
+        }
+    }
+    public class BoolToVis : IValueConverter
+    {
+        public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
+        {
+            if (value is bool booleanValue)
+            {
+                return booleanValue ? Visibility.Visible : Visibility.Collapsed;
+            }
+            return Visibility.Collapsed;
+        }
+
+        public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
+        {
+            throw new NotImplementedException();
         }
     }
 }

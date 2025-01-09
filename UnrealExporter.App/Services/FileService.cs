@@ -38,7 +38,7 @@ public class FileService : IFileService
         return false;
     }
 
-    public void ConvertTextures()
+    public async Task ConvertTextures()
     {
         if (_appConfig.ExportTextures && _appConfig.ConvertTextures)
         {
@@ -49,7 +49,7 @@ public class FileService : IFileService
                 CopyFile(TEX_CONV_EXE);
                 CopyFile(TEX_DIAG_EXE);
 
-                RunDDSExecutable();
+                await RunDDSExecutable();
 
                 if (CheckForSuccess())
                 {
@@ -112,7 +112,7 @@ public class FileService : IFileService
         }
     }
 
-    private void RunDDSExecutable()
+    private async Task RunDDSExecutable()
     {
         try
         {
@@ -124,7 +124,11 @@ public class FileService : IFileService
                 process.StartInfo.FileName = ddsPath;
                 process.StartInfo.WorkingDirectory = Path.Combine(EXPORT_DIRECTORY, "Textures");
                 process.Start();
-                process.WaitForExit();
+
+                if (process != null)
+                {
+                    await Task.Run(() => process.WaitForExit());
+                }
 
                 Console.WriteLine($"{DDS_EXE} executed successfully.");
             }
