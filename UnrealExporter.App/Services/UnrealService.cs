@@ -47,21 +47,21 @@ public class UnrealService : IUnrealService
         }
         catch (Exception ex)
         {
-            Console.WriteLine("Error copying Python script: " + ex.Message);
+            throw new Exception(ex.Message);
         }
     }
 
     /// <summary>
     /// Runs the script that exports meshes and textures from Unreal. 
     /// </summary>
-    /// <param name="filesToExcludeFromExport">A list of files that should be excluded from the export, to speed up the process</param>
-    /// <returns>An ExportResult object containing a property if it was successful or not</returns>
-    public async Task<ExportResult> ExportAssetsAsync(List<string>? filesToExcludeFromExport)
+    /// <param name="filesToExcludeFromExport">A list of files that should be excluded from the export, to speed up the process.</param>
+    /// <returns>A bool indicating if the export was successful or not.</returns>
+    public async Task<bool> ExportAssetsAsync(List<string>? filesToExcludeFromExport)
     {
-        CopyPythonScriptToDestination();
-
         try
         {
+            CopyPythonScriptToDestination();
+
             string directoryPath = Path.GetDirectoryName(_appConfig.UnrealEnginePath)!;
             string unrealEditorPath = Path.Combine(directoryPath, "UnrealEditor-Cmd.exe");
             string arguments = $"\"{unrealEditorPath}\" \"{_appConfig.UnrealProjectFile}\" -stdout -FullStdOutLogOutput -ExecutePythonScript=\"{PYTHON_SCRIPT_DESTINATION_PATH} {EXPORT_DIRECTORY} ";
@@ -95,13 +95,11 @@ public class UnrealService : IUnrealService
 
             RemovePythonScriptFile();
 
-            return new ExportResult { Success = true };
+            return true;
         }
         catch (Exception ex)
         {
-            Console.WriteLine("Error launching Unreal Engine or running the script: " + ex.Message);
-
-            return new ExportResult { Success = false };
+            throw new Exception(ex.Message);
         }
     }
 

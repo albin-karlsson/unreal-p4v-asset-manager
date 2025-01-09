@@ -5,6 +5,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using UnrealExporter.App.Configs;
+using UnrealExporter.App.Exceptions;
 using UnrealExporter.App.Interfaces;
 
 namespace UnrealExporter.App.Services;
@@ -42,24 +43,33 @@ public class FileService : IFileService
         if (_appConfig.ExportTextures && _appConfig.ConvertTextures)
         {
             Console.WriteLine(@"Copying executables to C:\UnrealExport\Textures\");
-
-            CopyFile(DDS_EXE);
-            CopyFile(TEX_CONV_EXE);
-            CopyFile(TEX_DIAG_EXE);
-
-            RunDDSExecutable();
-
-            if (CheckForSuccess())
+            try
             {
-                Console.WriteLine("DDS conversion successful.");
-                Console.WriteLine("Removing PNGs and executables.");
-                CleanUp();
+                CopyFile(DDS_EXE);
+                CopyFile(TEX_CONV_EXE);
+                CopyFile(TEX_DIAG_EXE);
 
-                TextureConversionSuccessful = true;
+                RunDDSExecutable();
+
+                if (CheckForSuccess())
+                {
+                    // Remove PNGs and executables
+                    CleanUp();
+
+                    TextureConversionSuccessful = true;
+                }
+                else
+                {
+                    TextureConversionSuccessful = false;
+                }
             }
-            else
+            catch(ServiceException ex)
             {
-                TextureConversionSuccessful = false;
+                throw new ServiceException(ex.Message);
+            }
+            catch (Exception ex)
+            {
+                throw new Exception(ex.Message);
             }
         }
     }
@@ -78,7 +88,6 @@ public class FileService : IFileService
         return (selectedMeshes, selectedTextures);
     }
 
-    // Method to copy a file from the source directory to the destination directory
     private void CopyFile(string fileName)
     {
         try
@@ -99,11 +108,10 @@ public class FileService : IFileService
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Error copying {fileName}: {ex.Message}");
+            throw new ServiceException(ex.Message);
         }
     }
 
-    // Method to run the _dds.exe executable
     private void RunDDSExecutable()
     {
         try
@@ -115,19 +123,19 @@ public class FileService : IFileService
                 Process process = new Process();
                 process.StartInfo.FileName = ddsPath;
                 process.StartInfo.WorkingDirectory = Path.Combine(EXPORT_DIRECTORY, "Textures");
-                process.Start(); // Start the _dds.exe process
-                process.WaitForExit(); // Optionally wait for the process to exit
+                process.Start();
+                process.WaitForExit();
 
                 Console.WriteLine($"{DDS_EXE} executed successfully.");
             }
             else
             {
-                Console.WriteLine($"{DDS_EXE} does not exist in the destination directory.");
+                throw new ServiceException($"{DDS_EXE} does not exist in the destination directory.");
             }
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Error running {DDS_EXE}: {ex.Message}");
+            throw new ServiceException(ex.Message);
         }
     }
 
@@ -146,7 +154,7 @@ public class FileService : IFileService
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Error deleting PNG files: {ex.Message}");
+            throw new Exception(ex.Message);
         }
     }
 
@@ -178,17 +186,12 @@ public class FileService : IFileService
         }
     }
 
-    // Cleanup method to delete PNG files and executables after running _dds
     private void CleanUp()
     {
-        // Delete all PNG files
         DeletePNGFiles();
-
-        // Delete executables (_dds, _texConv, _texdiag)
         DeleteExecutables();
     }
 
-    // Method to move the folders to the workspace folder
     public void MoveDirectories(string[] filesToExport)
     {
         try

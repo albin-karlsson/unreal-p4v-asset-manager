@@ -182,11 +182,9 @@ namespace UnrealExporter.UI
                     filesToExcludeFromExport = _fileService.CheckDestinationDirectoryForExistingFiles();
                 }
 
-                _unrealService.InitializeExport();
+                var exportResult = await ProcessUnrealExport(filesToExcludeFromExport);
 
-                var exportResult = await _unrealService.ExportAssetsAsync(filesToExcludeFromExport);
-
-                if (!exportResult.Success)
+                if (!exportResult)
                 {
                     throw new ServiceException("Error exporting from Unreal.");
                 }
@@ -200,12 +198,7 @@ namespace UnrealExporter.UI
 
                 if (_appConfig.ExportTextures)
                 {
-                    _fileService.ConvertTextures();
-
-                    if (!_fileService.TextureConversionSuccessful)
-                    {
-                        throw new ServiceException("DDS conversion failed! Export canceled. Check file names and try again.");
-                    }
+                    ProcessTextureConversion();
                 }
 
                 PreviewWindow previewWindow = new(exportedFiles);
@@ -239,11 +232,43 @@ namespace UnrealExporter.UI
             }
             catch (Exception ex)
             {
-                ShowError($"An unexpected error occurred:" + Environment.NewLine + ex.Message);
+                ShowError(ex.Message);
             }
             finally
             {
                 ResetUI();
+            }
+        }
+
+        private async Task<bool> ProcessUnrealExport(List<string>? filesToExcludeFromExport)
+        {
+            try
+            {
+                _unrealService.InitializeExport();
+                var exportResult = await _unrealService.ExportAssetsAsync(filesToExcludeFromExport);
+
+                return exportResult;
+            }
+            catch (Exception ex)
+            {
+                throw new Exception(ex.Message);
+            }
+        }
+
+        private void ProcessTextureConversion()
+        {
+            try
+            {
+                _fileService.ConvertTextures();
+
+                if (!_fileService.TextureConversionSuccessful)
+                {
+                    throw new ServiceException("DDS conversion failed! Export canceled. Check file names and try again.");
+                }
+            }
+            catch(Exception ex)
+            {
+                throw new Exception(ex.Message);
             }
         }
 
