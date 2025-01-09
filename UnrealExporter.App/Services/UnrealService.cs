@@ -33,7 +33,9 @@ public class UnrealService : IUnrealService
         }
     }
 
-    // Method to copy the Python script to D:/
+    /// <summary>
+    /// Copy the Python script that exports assets from Unreal to "D:/".
+    /// </summary>
     private void CopyPythonScriptToDestination()
     {
         try
@@ -49,6 +51,11 @@ public class UnrealService : IUnrealService
         }
     }
 
+    /// <summary>
+    /// Runs the script that exports meshes and textures from Unreal. 
+    /// </summary>
+    /// <param name="filesToExcludeFromExport">A list of files that should be excluded from the export, to speed up the process</param>
+    /// <returns>An ExportResult object containing a property if it was successful or not</returns>
     public async Task<ExportResult> ExportAssetsAsync(List<string>? filesToExcludeFromExport)
     {
         CopyPythonScriptToDestination();

@@ -2,11 +2,13 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net.Sockets;
 using System.Runtime.CompilerServices;
 using System.Security.Cryptography.X509Certificates;
 using System.Text;
 using System.Threading.Tasks;
 using UnrealExporter.App.Configs;
+using UnrealExporter.App.Exceptions;
 using UnrealExporter.App.Interfaces;
 
 namespace UnrealExporter.App.Services;
@@ -15,21 +17,32 @@ public class PerforceService : IPerforceService
 {
     private const string SERVER_URI = "ssl:perforce.tga.learnet.se:1666";
 
-    private string _workspace;
-    private Server _server;
-    private Repository _repository;
+    private string? _workspace;
+    private Server? _server;
+    private Repository? _repository;
 
     private readonly IAppConfig _appConfig;
 
-    public string WorkspacePath { get; set; }
+    public string? WorkspacePath { get; set; }
 
-    public ConnectionStatus ConnectionStatus { get { return _repository.Connection.Status; } }
+    public ConnectionStatus? ConnectionStatus { get { return _repository?.Connection.Status; } }
 
     public PerforceService(IAppConfig appConfig)
     {
-        _server = new Server(new ServerAddress(SERVER_URI));
-        _repository = new Repository(_server);
-        _appConfig = appConfig;
+        try
+        {
+            _server = new Server(new ServerAddress(SERVER_URI));
+            _repository = new Repository(_server);
+            _appConfig = appConfig;
+        }
+        catch (P4Exception ex)
+        {
+            throw new ServiceException("A Perforce related error ocurred: " + ex.Message);
+        }
+        catch (Exception ex)
+        {
+            throw new Exception(ex.Message);
+        }
     }
 
     public List<string>? GetWorkspaces()
@@ -37,109 +50,156 @@ public class PerforceService : IPerforceService
         try
         {
             Options options = new();
-
-            IList<Client> clients = _repository.GetClients(options)
-                                               .Where(c => c.OwnerName == _repository.Connection.UserName)
-                                               .ToList();
-
-            if (clients != null && clients.Count > 0)
-            {
-                Console.WriteLine($"Found {clients.Count} workspaces:");
-
-                List<string> workspaces = new();
-
-                foreach (var client in clients)
-                {
-                    workspaces.Add(client.Name);
-                }
-
-                return workspaces;
-            }
-
-            Console.WriteLine("No workspaces found.");
-            return null;
+            return _repository?.GetClients(options)
+                             ?.Where(c => c.OwnerName == _repository.Connection.UserName)
+                             ?.Select(c => c.Name)
+                             ?.ToList();
         }
         catch (P4Exception ex)
         {
-            Console.WriteLine($"Perforce error: {ex.Message}");
-            return null;
+            throw new ServiceException(ex.Message);
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"General error: {ex.Message}");
-            return null;
+            throw new Exception(ex.Message);
         }
     }
 
     public void Connect(string workspace)
     {
-        _workspace = workspace;
+        try
+        {
+            _workspace = workspace;
 
-        Client client = _repository.GetClient(workspace);
+            if(_repository == null)
+            {
+                throw new ServiceException("No Perforce repository found.");
+            }
 
-        _repository.Connection.Client = client;
-        WorkspacePath = @$"C:\Users\{_repository.Connection.UserName}\Perforce\{_workspace}\";
+            Client? client = _repository!.GetClient(workspace);
 
-        Sync();
+            if(client == null)
+            {
+                throw new ServiceException($"No client found for workspace {workspace}.");
+            }
+
+            _repository!.Connection.Client = client;
+            WorkspacePath = @$"C:\Users\{_repository.Connection.UserName}\Perforce\{_workspace}\";
+
+            Sync();
+        }
+        catch (P4Exception ex)
+        {
+            throw new ServiceException(ex.Message);
+        }
+        catch (Exception ex)
+        {
+            throw new Exception(ex.Message);
+        }
     }
 
     public bool LogIn(string username, string password)
     {
         try
         {
-            Console.WriteLine("Attempting to login to Perforce.");
+            if (_repository == null)
+            {
+                throw new ServiceException("No Perforce repository found.");
+            }
 
             _repository.Connection.UserName = username;
 
             if (_repository.Connection.Connect(null))
             {
-                Console.WriteLine("Connected to Perforce.");
-
                 _repository.Connection.Login(password);
-
                 return true;
             }
-
-            return false;
+            else
+            {
+                throw new ServiceException("Failed to connect to Perforce server.");
+            }
         }
-       catch
-       {
-            return false;
-       }
-
+        catch (ServiceException ex)
+        {
+            throw new ServiceException(ex.Message);
+        }
+        catch(Exception ex)
+        {
+            throw new Exception(ex.Message);
+        }
     }
 
     public void Disconnect()
     {
-        _repository.Connection.Disconnect();
+        try
+        {
+            if (_repository == null)
+            {
+                throw new ServiceException("No Perforce repository found.");
+            }
+            else
+            {
+                _repository.Connection.Disconnect();
+            }
+        }
+        catch(ServiceException ex)
+        {
+            throw new ServiceException(ex.Message);
+        }
+        catch (Exception ex)
+        {
+            throw new Exception(ex.Message);
+        }
     }
 
     public string[] GetUnrealProjectPathFromPerforce()
     {
-        string[] projectFiles = Directory.GetFiles(WorkspacePath, "*.uproject", SearchOption.AllDirectories);
-
-        if (projectFiles.Length > 0)
+        try
         {
-            return projectFiles;
-        }
+            if(WorkspacePath == null)
+            {
+                throw new ServiceException("No valid workspace path found.");
+            }
 
-        return new string[0];
+            string[]? projectFiles = Directory.GetFiles(WorkspacePath, "*.uproject", SearchOption.AllDirectories);
+
+            if (projectFiles.Length > 0)
+            {
+                return projectFiles;
+            }
+
+            return new string[0];
+        }
+        catch(ServiceException ex)
+        {
+            throw new ServiceException(ex.Message);
+        }
+        catch(Exception ex)
+        {
+            throw new Exception(ex.Message);
+        }
     }
 
     private void Sync()
     {
-        Console.WriteLine("Syncing Perforce.");
-
-        Options syncOptions = new Options(SyncFilesCmdFlags.None, -1);
-
-        // TODO: Return the error message to the UI
         try
         {
+            if (_repository == null)
+            {
+                throw new ServiceException("No Perforce repository found.");
+            }
+
+            Options syncOptions = new Options(SyncFilesCmdFlags.None, -1);
+
             _repository.Connection.Client.SyncFiles(syncOptions, null);
         }
-        catch (Exception e)
+        catch(ServiceException ex)
         {
-
+            throw new ServiceException("A Perforce related error ocurred: " + ex.Message);
+        }
+        catch (Exception ex)
+        {
+            throw new Exception(ex.Message);
         }
     }
 
@@ -147,38 +207,6 @@ public class PerforceService : IPerforceService
     {
         try
         {
-            //string exportPathRoot = appConfig.DestinationDirectory; 
-
-            //string meshesExportPath = appConfig.ExportMeshes && appConfig.ExportTextures
-            //    ? Path.Combine(exportPathRoot, "Meshes")
-            //    : exportPathRoot;
-
-            //string texturesExportPath = appConfig.ExportMeshes && appConfig.ExportTextures
-            //    ? Path.Combine(exportPathRoot, "Textures")
-            //    : exportPathRoot;
-
-            //string[] meshFilePaths = Directory.GetFiles(meshesExportPath);
-            //string[] textureFilePaths = Directory.GetFiles(texturesExportPath);
-
-            //List<string> allFilePaths = meshFilePaths.Concat(textureFilePaths).ToList();
-
-            //for (int i = allFilePaths.Count - 1; i >= 0; i--)
-            //{
-            //    var filePath = allFilePaths[i];
-            //    if (!exportedFiles.Contains(filePath))
-            //    {
-            //        allFilePaths.RemoveAt(i);
-            //    }
-            //}
-
-            //string[] filePaths = allFilePaths.ToArray();
-
-            //if (filePaths.Length == 0)
-            //{
-            //    Console.WriteLine("No files found in the specified directory.");
-            //    return;
-            //}
-
             List<FileSpec> fileSpecs = new List<FileSpec>();
             foreach (string exportedFile in exportedFiles)
             {
@@ -190,12 +218,12 @@ public class PerforceService : IPerforceService
         }
         catch (P4Exception ex)
         {
-            Console.WriteLine($"Perforce error: {ex.Message}");
-            Console.WriteLine($"Error code: {ex.ErrorCode}");
+            throw new ServiceException("A Perforce related error ocurred: " + ex.Message);
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"General error: {ex.Message}");
+            throw new Exception(ex.Message);
+
         }
     }
 
@@ -203,6 +231,11 @@ public class PerforceService : IPerforceService
     {
         try
         {
+            if(_repository == null)
+            {
+                throw new ServiceException("No Perforce repository found.");
+            }
+
             List<FileSpec> filesToAdd = new List<FileSpec>();
             List<FileSpec> filesToEdit = new List<FileSpec>();
 
@@ -241,11 +274,11 @@ public class PerforceService : IPerforceService
         }
         catch (P4Exception ex)
         {
-            Console.WriteLine($"Perforce error: {ex.Message}");
+            throw new ServiceException("A Perforce related error ocurred: " + ex.Message);
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"General error: {ex.Message}");
+            throw new Exception(ex.Message);
         }
     }
 
@@ -253,6 +286,11 @@ public class PerforceService : IPerforceService
     {
         try
         {
+            if (_repository == null)
+            {
+                throw new ServiceException("No Perforce repository found.");
+            }
+
             Options options = new();
 
             FileSpec fileSpec = new FileSpec(new DepotPath("//..."), null);  // This pattern matches all files
@@ -282,17 +320,14 @@ public class PerforceService : IPerforceService
             changelist = _repository.CreateChangelist(changelist);
 
             changelist.Submit(new Options());
-
-            Console.WriteLine($"Changes submitted successfully.");
         }
         catch (P4Exception ex)
         {
-            Console.WriteLine($"Perforce submit error: {ex.Message}");
-            Console.WriteLine($"Error code: {ex.ErrorCode}");
+            throw new ServiceException("A Perforce related error ocurred: " + ex.Message);
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"General error during submit: {ex.Message}");
+            throw new Exception(ex.Message);
         }
     }
 }

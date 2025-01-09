@@ -5,8 +5,8 @@ namespace UnrealExporter.App.Interfaces
 {
     public interface IPerforceService
     {
-        public string WorkspacePath { get; set; }
-        public ConnectionStatus ConnectionStatus { get; }
+        public string? WorkspacePath { get; set; }
+        public ConnectionStatus? ConnectionStatus { get; }
 
 
         public List<string>? GetWorkspaces();

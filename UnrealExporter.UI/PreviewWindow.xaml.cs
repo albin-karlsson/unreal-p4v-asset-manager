@@ -10,10 +10,10 @@ namespace UnrealExporter.UI
     public partial class PreviewWindow : Window
     {
         private ObservableCollection<FileItem> _fileItems = new ObservableCollection<FileItem>();
-        private string[] _allFiles;
+        private readonly string[] _allFiles;
 
-        public string[] SelectedFiles { get; private set; }
-        public string SubmitMessage { get; private set; }
+        public string[]? SelectedFiles { get; private set; }
+        public string? SubmitMessage { get; private set; }
 
         public PreviewWindow(string[] filesToExport)
         {
@@ -45,11 +45,12 @@ namespace UnrealExporter.UI
 
         private void Submit_Click(object sender, RoutedEventArgs e)
         {
-            SelectedFiles = _fileItems.Where(item => item.IsSelected)
-                .Select(item => item.FullName)
-                .ToArray()!;
+            SelectedFiles = _fileItems
+                .Where(item => item.IsSelected)
+                .Select(item => item.FullName ?? string.Empty)
+                .ToArray();
 
-            if(string.IsNullOrWhiteSpace(txtSubmitMessage.Text)) 
+            if (string.IsNullOrWhiteSpace(txtSubmitMessage.Text)) 
             {
                 SubmitMessage = txtPlaceholder.Text;
             }
@@ -107,7 +108,7 @@ namespace UnrealExporter.UI
             }
         }
 
-        public event PropertyChangedEventHandler PropertyChanged;
+        public event PropertyChangedEventHandler? PropertyChanged;
 
         protected virtual void OnPropertyChanged(string propertyName)
         {

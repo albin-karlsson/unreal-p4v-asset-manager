@@ -9,7 +9,7 @@ namespace UnrealExporter.App.Interfaces
 
         bool CheckExistingOutputDirectory();
         void ConvertTextures();
-        (bool exportMeshes, bool exportTextures) GetAndSetSelectedFilesFileTypes(string[] selectedFiles);
+        (bool exportMeshes, bool exportTextures) GetSelectedFilesFileTypes(string[] selectedFiles);
         void MoveDirectories(string[] filesToExport);
         List<string> CheckDestinationDirectoryForExistingFiles();
 

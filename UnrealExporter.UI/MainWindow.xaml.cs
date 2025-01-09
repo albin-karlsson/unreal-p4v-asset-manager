@@ -19,6 +19,7 @@ using System.Windows.Media.Imaging;
 using System.Windows.Navigation;
 using System.Windows.Shapes;
 using UnrealExporter.App.Configs;
+using UnrealExporter.App.Exceptions;
 using UnrealExporter.App.Interfaces;
 using UnrealExporter.App.Services;
 
@@ -26,7 +27,7 @@ namespace UnrealExporter.UI
 {
     public partial class MainWindow : Window
     {
-        private const string DEFAULT_UE_PATH = @"C:\Program Files\Epic Games\UE_5.3\Engine\Binaries\Win64\UnrealEditor.exe";
+        private const string DEFAULT_UE_5_3_PATH = @"C:\Program Files\Epic Games\UE_5.3\Engine\Binaries\Win64\UnrealEditor.exe";
 
         private readonly IPerforceService _perforceService;
         private readonly IFileService _fileService;
@@ -35,9 +36,7 @@ namespace UnrealExporter.UI
 
         private string? _meshesSourceDirectory = null;
         private string? _texturesSourceDirectory = null;
-
-        public PerforceService? PerforceManager { get; set; }
-        public string SelectedUnrealProjectFile { get; set; }
+        private string? _selectedUnrealProjectFile = null;
 
         public MainWindow(IFileService fileService, IUnrealService unrealService, IPerforceService perforceService, IAppConfig appConfig)
         {
@@ -52,43 +51,50 @@ namespace UnrealExporter.UI
 
         private bool ValidateExportRequirements()
         {
-            var validationErrors = new List<string>();
-
-            if (!(xboxExportMeshes.IsChecked ?? false) && !(xboxExportTextures.IsChecked ?? false))
+            try
             {
-                validationErrors.Add("Please select to export either meshes, textures, or both.");
+                var validationErrors = new List<string>();
+
+                if (!(xboxExportMeshes.IsChecked ?? false) && !(xboxExportTextures.IsChecked ?? false))
+                {
+                    validationErrors.Add("Please select to export either meshes, textures, or both.");
+                }
+
+                if (xboxExportMeshes.IsChecked == true && string.IsNullOrEmpty(txtMeshesSourceDirectory.Text))
+                {
+                    validationErrors.Add("Meshes export selected but no Unreal meshes directory specified.");
+                }
+
+                if (xboxExportTextures.IsChecked == true && string.IsNullOrEmpty(txtTexturesSourceDirectory.Text))
+                {
+                    validationErrors.Add("Textures export selected but no Unreal textures directory specified.");
+                }
+
+                if (string.IsNullOrEmpty(txtDestinationDirectory.Text))
+                {
+                    validationErrors.Add("No output directory specified.");
+                }
+
+                if (validationErrors.Any())
+                {
+                    string errorMessage = string.Join(Environment.NewLine, validationErrors);
+                    throw new Exception("Validation errors: " + Environment.NewLine + errorMessage);
+                }
+
+                return true;
             }
-
-            if (xboxExportMeshes.IsChecked == true && string.IsNullOrEmpty(txtMeshesSourceDirectory.Text))
+            catch (Exception ex) 
             {
-                validationErrors.Add("Meshes export selected but no Unreal meshes directory specified.");
-            }
-
-            if (xboxExportTextures.IsChecked == true && string.IsNullOrEmpty(txtTexturesSourceDirectory.Text))
-            {
-                validationErrors.Add("Textures export selected but no Unreal textures directory specified.");
-            }
-
-            if (string.IsNullOrEmpty(txtDestinationDirectory.Text))
-            {
-                validationErrors.Add("No output directory specified.");
-            }
-
-            if (validationErrors.Any())
-            {
-                string errorMessage = string.Join(Environment.NewLine, validationErrors);
-                ShowError("Validation errors: " + Environment.NewLine + errorMessage);
+                ShowError(ex.Message);
                 return false;
             }
-
-            return true;
         }
 
         private void xboxUseDefaultUnrealEnginePath_Clicked(object sender, RoutedEventArgs e)
         {
             if (xboxUseDefaultUnrealEnginePath.IsChecked == true)
             {
-                txtUnrealEnginePath.Text = DEFAULT_UE_PATH;
+                txtUnrealEnginePath.Text = DEFAULT_UE_5_3_PATH;
             }
             else
             {
@@ -98,36 +104,41 @@ namespace UnrealExporter.UI
 
         private void btnGetPerforceWorkspaces_Click(object sender, RoutedEventArgs e)
         {
-            cboxPerforceWorkspace.Items.Clear();
-
-            string trimmedUsername = txtPerforceUsername.Text.Trim();
-            string trimmedPassword = txtPerforcePassword.Password.Trim();
-
-            if (trimmedUsername.Length > 0 && trimmedPassword.Length > 0)
+            try
             {
-                bool isSuccessfulLogin = _perforceService.LogIn(trimmedUsername, trimmedPassword);
+                cboxPerforceWorkspace.Items.Clear();
 
-                if (!isSuccessfulLogin)
+                string trimmedUsername = txtPerforceUsername.Text.Trim();
+                string trimmedPassword = txtPerforcePassword.Password.Trim();
+
+                if (trimmedUsername.Length > 0 && trimmedPassword.Length > 0)
                 {
-                    ShowError("Failed to login to Perforce. Check your username and password and try again.");
-                    return;
-                }
+                    bool isSuccessfulLogin = _perforceService.LogIn(trimmedUsername, trimmedPassword);
 
-                List<string>? workspaces = _perforceService.GetWorkspaces();
-
-                if (workspaces != null)
-                {
-                    foreach (string workspace in workspaces)
+                    if (!isSuccessfulLogin)
                     {
-                        cboxPerforceWorkspace.Items.Add(workspace);
+                        throw new ServiceException("Failed to login to Perforce. Check your username and password and try again.");
                     }
 
-                    ShowSuccess($"{workspaces.Count()} Perforce workspaces retrieved!");
+                    List<string>? workspaces = _perforceService.GetWorkspaces();
+
+                    if (workspaces != null)
+                    {
+                        foreach (string workspace in workspaces)
+                        {
+                            cboxPerforceWorkspace.Items.Add(workspace);
+                        }
+
+                        ShowSuccess($"{workspaces.Count()} Perforce workspaces retrieved!");
+                    }
+                }
+                else
+                {
+                    throw new Exception("No Perforce username or password specified.");
                 }
             }
-            else
-            {
-                ShowError("No Perforce username or password specified.");
+            catch (Exception ex) {
+                ShowError(ex.Message);
             }
         }
 
@@ -159,7 +170,7 @@ namespace UnrealExporter.UI
                     xboxConvertTexturesToDDS.IsChecked ?? false,
                     xboxOverwriteFiles.IsChecked ?? false,
                     txtUnrealEnginePath.Text,
-                    SelectedUnrealProjectFile,
+                    _selectedUnrealProjectFile!,
                     _meshesSourceDirectory!,
                     _texturesSourceDirectory!
                 );
@@ -177,18 +188,14 @@ namespace UnrealExporter.UI
 
                 if (!exportResult.Success)
                 {
-                    ShowError("Error exporting from Unreal.");
-
-                    return;
+                    throw new ServiceException("Error exporting from Unreal.");
                 }
 
                 string[] exportedFiles = _fileService.GetExportedFiles();
 
                 if (!exportedFiles.Any())
                 {
-                    ShowError("No files found to export.");
-                    ResetUI();
-                    return;
+                    throw new ServiceException("No files found to export");
                 }
 
                 if (_appConfig.ExportTextures)
@@ -197,9 +204,7 @@ namespace UnrealExporter.UI
 
                     if (!_fileService.TextureConversionSuccessful)
                     {
-                        ShowError("DDS conversion failed! Export canceled. Check file names and try again.");
-                        ResetUI();
-                        return;
+                        throw new ServiceException("DDS conversion failed! Export canceled. Check file names and try again.");
                     }
                 }
 
@@ -207,18 +212,23 @@ namespace UnrealExporter.UI
 
                 if ((bool)previewWindow.ShowDialog()!)
                 {
-                    if (!previewWindow.SelectedFiles.Any())
+                    if (previewWindow.SelectedFiles == null || !previewWindow.SelectedFiles!.Any())
                     {
-                        ShowError("No files selected for submit.");
+                        throw new Exception("No files selected for submit");
                     }
 
-                    _appConfig.SubmitMessage = previewWindow.SubmitMessage;
+                    if (previewWindow.SubmitMessage == null)
+                    {
+                        throw new Exception("No valid submit message found");
+                    }
 
-                    var (exportMeshes, exportTextures) = _fileService.GetAndSetSelectedFilesFileTypes(previewWindow.SelectedFiles);
+                    _appConfig.SubmitMessage = previewWindow.SubmitMessage!;
+
+                    var (exportMeshes, exportTextures) = _fileService.GetSelectedFilesFileTypes(previewWindow.SelectedFiles!);
                     _appConfig.ExportMeshes = exportMeshes;
                     _appConfig.ExportTextures = exportTextures;
 
-                    _fileService.MoveDirectories(previewWindow.SelectedFiles);
+                    _fileService.MoveDirectories(previewWindow.SelectedFiles!);
 
                     _perforceService.AddFilesToPerforce(_fileService.ExportedFiles);
                     _perforceService.Disconnect();
@@ -229,7 +239,7 @@ namespace UnrealExporter.UI
             }
             catch (Exception ex)
             {
-                ShowError("An unexpected error occurred.");
+                ShowError($"An unexpected error occurred:" + Environment.NewLine + ex.Message);
             }
             finally
             {
@@ -273,8 +283,9 @@ namespace UnrealExporter.UI
             xboxConvertTexturesToDDS.IsEnabled = false;
 
             // Set default values
-            txtUnrealEnginePath.Text = DEFAULT_UE_PATH;
+            txtUnrealEnginePath.Text = DEFAULT_UE_5_3_PATH;
             xboxUseDefaultUnrealEnginePath.IsChecked = true;
+
             SetSourceAndDestinationInputs(false);
         }
 
@@ -294,110 +305,129 @@ namespace UnrealExporter.UI
 
         private void btnBrowseUnrealSource_Click(object sender, RoutedEventArgs e)
         {
-            if (SelectedUnrealProjectFile == null)
+            try
             {
-                if (_perforceService.ConnectionStatus == ConnectionStatus.Disconnected)
+                if (_selectedUnrealProjectFile == null)
                 {
-                    ShowError("Perforce not connected.");
-                    return;
-                }
-                else
-                {
-                    string[] projectFiles = _perforceService.GetUnrealProjectPathFromPerforce();
-
-                    if (projectFiles.Length == 0)
+                    if (_perforceService.ConnectionStatus == null || _perforceService.ConnectionStatus == ConnectionStatus.Disconnected)
                     {
-                        MessageBox.Show("No Unreal projects found in Perforce workspace.", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
-                        return;
+                        throw new ServiceException("Perforce not connected.");
                     }
-
-                    if (projectFiles.Length > 1)
+                    else
                     {
-                        var selectionWindow = new SelectionWindow(projectFiles);
-                        bool? result = selectionWindow.ShowDialog();
+                        string[] projectFiles = _perforceService.GetUnrealProjectPathFromPerforce();
 
-                        if (result == true)
+                        if (projectFiles.Length == 0)
                         {
-                            if (selectionWindow.SelectedProject != null)
+                            throw new ServiceException("No Unreal projects found in Perforce workspace.");
+                        }
+
+                        if (projectFiles.Length > 1)
+                        {
+                            var selectionWindow = new SelectionWindow(projectFiles);
+                            bool? result = selectionWindow.ShowDialog();
+
+                            if (result == true)
                             {
-                                SelectedUnrealProjectFile = selectionWindow.SelectedProject;
+                                if (selectionWindow.SelectedProject != null)
+                                {
+                                    _selectedUnrealProjectFile = selectionWindow.SelectedProject;
+                                }
+                            }
+                            else
+                            {
+                                throw new Exception("Error selecting Unreal project file.");
                             }
                         }
                         else
                         {
-                            return;
+                            _selectedUnrealProjectFile = projectFiles[0];
                         }
                     }
-                    else
-                    {
-                        SelectedUnrealProjectFile = projectFiles[0];
-                    }
+                }
+
+                Button currentButton = (Button)sender;
+
+                if (currentButton.Name.ToLower().Contains("meshes"))
+                {
+                    SelectSourceDirectory("meshes");
+                }
+                else
+                {
+                    SelectSourceDirectory("textures");
                 }
             }
-
-            Button currentButton = (Button)sender;
-
-            if (currentButton.Name.ToLower().Contains("meshes"))
+            catch (Exception ex)
             {
-                SelectSourceDirectory("meshes");
-            }
-            else
-            {
-                SelectSourceDirectory("textures");
+                ShowError(ex.Message);
             }
         }
 
         private void SelectSourceDirectory(string inputType)
         {
-            var folderBrowserDialog = new OpenFolderDialog
+            try
             {
-                InitialDirectory = System.IO.Path.GetDirectoryName(SelectedUnrealProjectFile)
-            };
-
-            if ((bool)folderBrowserDialog.ShowDialog()!)
-            {
-                string fullPath = folderBrowserDialog.FolderName;
-                string contentPath = "\\Content\\";
-                int contentIndex = fullPath.IndexOf(contentPath, StringComparison.OrdinalIgnoreCase);
-
-                if (contentIndex != -1)
+                var folderBrowserDialog = new OpenFolderDialog
                 {
-                    string relativePath = fullPath.Substring(contentIndex + contentPath.Length);
+                    InitialDirectory = System.IO.Path.GetDirectoryName(_selectedUnrealProjectFile)
+                };
 
-                    if (inputType == "meshes")
+                if ((bool)folderBrowserDialog.ShowDialog()!)
+                {
+                    string fullPath = folderBrowserDialog.FolderName;
+                    string contentPath = "\\Content\\";
+                    int contentIndex = fullPath.IndexOf(contentPath, StringComparison.OrdinalIgnoreCase);
+
+                    if (contentIndex != -1)
                     {
-                        _meshesSourceDirectory = relativePath;
-                        txtMeshesSourceDirectory.Text = _meshesSourceDirectory;
+                        string relativePath = fullPath.Substring(contentIndex + contentPath.Length);
+
+                        if (inputType == "meshes")
+                        {
+                            _meshesSourceDirectory = relativePath;
+                            txtMeshesSourceDirectory.Text = _meshesSourceDirectory;
+                        }
+                        else if (inputType == "textures")
+                        {
+                            _texturesSourceDirectory = relativePath;
+                            txtTexturesSourceDirectory.Text = _texturesSourceDirectory;
+                        }
                     }
-                    else if (inputType == "textures")
+                    else
                     {
-                        _texturesSourceDirectory = relativePath;
-                        txtTexturesSourceDirectory.Text = _texturesSourceDirectory;
+                        throw new Exception("No content folder found in Unreal project.");
                     }
                 }
-                else
-                {
-                    ShowError("No content folder found in Unreal project.");
-                }
+            }
+            catch(Exception ex)
+            {
+                ShowError(ex.Message);
             }
         }
 
         private void cboxPerforceWorkspace_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
-            string? selectedWorkspace = cboxPerforceWorkspace.SelectedItem?.ToString();
-
-            if (!string.IsNullOrEmpty(selectedWorkspace))
+            try
             {
-                _perforceService.Connect(selectedWorkspace);
+                string? selectedWorkspace = cboxPerforceWorkspace.SelectedItem?.ToString();
+
+                if (!string.IsNullOrEmpty(selectedWorkspace))
+                {
+                    _perforceService.Connect(selectedWorkspace);
+
+                    SetSourceAndDestinationInputs(true);
+
+                    // Reset part of UI and selected Unreal project if workspace changes
+                    _selectedUnrealProjectFile = null!;
+                    txtDestinationDirectory.Text = "";
+                    txtMeshesSourceDirectory.Text = "";
+                    txtTexturesSourceDirectory.Text = "";
+                }
             }
-
-            SetSourceAndDestinationInputs(true);
-
-            // Reset UI and selected Unreal project if workspace changes
-            SelectedUnrealProjectFile = null!;
-            txtDestinationDirectory.Text = "";
-            txtMeshesSourceDirectory.Text = "";
-            txtTexturesSourceDirectory.Text = "";
+            catch(Exception ex)
+            {
+                ShowError(ex.Message);
+            }
         }
 
         private void xboxExportTextures_Checked(object sender, RoutedEventArgs e)
@@ -415,154 +445,42 @@ namespace UnrealExporter.UI
 
         private void btnBrowseDestinationDirectory_Click(object sender, RoutedEventArgs e)
         {
-            if (_perforceService.ConnectionStatus == ConnectionStatus.Disconnected)
+            try
             {
-                ShowError("Perforce not connected.");
-                return;
+                if (_perforceService.ConnectionStatus == null || _perforceService.ConnectionStatus == ConnectionStatus.Disconnected)
+                {
+                    throw new ServiceException("Perforce not connected.");
+                }
+
+                var folderBrowserDialog = new OpenFolderDialog
+                {
+                    InitialDirectory = System.IO.Path.GetDirectoryName(_perforceService.WorkspacePath)
+                };
+
+                bool? result = folderBrowserDialog.ShowDialog();
+
+                if ((bool)result!)
+                {
+                    if (_perforceService.WorkspacePath == null)
+                    {
+                        throw new ServiceException("No valid Perforce Workspace found.");
+                    }
+
+                    if (!folderBrowserDialog.FolderName.Contains(_perforceService.WorkspacePath))
+                    {
+                        ShowError("The destination directory doesn't seem to be in the current Perforce workspace.");
+                        return;
+                    }
+                    else
+                    {
+                        txtDestinationDirectory.Text = folderBrowserDialog.FolderName;
+                    }
+                }
             }
-
-            var folderBrowserDialog = new OpenFolderDialog
+            catch (Exception ex)
             {
-                InitialDirectory = System.IO.Path.GetDirectoryName(_perforceService.WorkspacePath)
-            };
-
-            // Show dialog and check if the user selects a folder
-            bool? result = folderBrowserDialog.ShowDialog();
-
-            if ((bool)result!)
-            {
-                if (!folderBrowserDialog.FolderName.Contains(_perforceService.WorkspacePath))
-                {
-                    ShowError("The destination directory doesn't seem to be in the current Perforce workspace.");
-                    return;
-                }
-                else
-                {
-                    txtDestinationDirectory.Text = folderBrowserDialog.FolderName;
-                }
+                ShowError(ex.Message);
             }
         }
-
     }
 }
-
-//private async void btnExportAssets_Click(object sender, RoutedEventArgs e)
-//{
-//    string? selectedWorkspace = cboxPerforceWorkspace.SelectedItem.ToString();
-
-//    if (!(bool)xboxExportMeshes.IsChecked! && !(bool)xboxExportTextures.IsChecked!)
-//    {
-//        MessageBox.Show("Please select to export either meshes, textures, or both, and try again.", "Error", MessageBoxButton.OK, MessageBoxImage.Error); ;
-//        return;
-//    }
-
-//    if (selectedWorkspace != null && PerforceManager != null && !string.IsNullOrEmpty(txtUnrealEnginePath.Text))
-//    {
-//        string unrealEnginePath = txtUnrealEnginePath.Text.Trim();
-
-//        bool exportMeshes = (bool)xboxExportMeshes.IsChecked!;
-//        bool exportTextures = (bool)xboxExportTextures.IsChecked!;
-
-//        List<string> errors = new();
-
-//        if (exportMeshes && string.IsNullOrEmpty(txtUnrealMeshesDirectory.Text))
-//        {
-//            errors.Add("Attempting to export meshes but no Unreal meshes directory specified.");
-//        }
-//        if (exportTextures && string.IsNullOrEmpty(txtUnrealTexturesDirectory.Text))
-//        {
-//            errors.Add("Attempting to export textures but no Unreal textures directory specified.");
-//        }
-//        if (string.IsNullOrEmpty(txtOutputDirectory.Text))
-//        {
-//            errors.Add("No output directory specified.");
-//        }
-//        if (errors.Count > 0)
-//        {
-//            string errorMessage = string.Join(Environment.NewLine, errors);
-//            MessageBox.Show(errorMessage, "Errors", MessageBoxButton.OK, MessageBoxImage.Error);
-//            return;
-//        }
-
-//        PerforceManager.Connect(selectedWorkspace);
-
-//        bool overwriteFiles = (bool)xboxOverwriteFiles.IsChecked!;
-//        bool convertTextures = (bool)xboxConvertTexturesToDDS.IsChecked!;
-
-//        FileManager fileManager = new(txtOutputDirectory.Text, overwriteFiles, exportMeshes, exportTextures, convertTextures);
-
-//        List<string> filesToExclude = new();
-
-//        if (!overwriteFiles)
-//        {
-//            filesToExclude = fileManager.CheckDestinationFolderContent();
-//        }
-
-//        UnrealManager unrealManager = new(unrealEnginePath, SelectedUnrealProjectFile, exportMeshes, exportTextures, _meshesSourceDirectory, _texturesSourceDirectory);
-//        unrealManager.InitializeExport();
-
-//        await unrealManager.LaunchUnrealAndRunScriptAsync(filesToExclude);
-
-//        if (!fileManager.CheckExistingOutputDirectory())
-//        {
-//            MessageBox.Show("No files found to export.", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
-//            ResetUi();
-//            return;
-//        }
-
-//        if (exportTextures)
-//        {
-//            fileManager.ConvertTextures();
-
-//            if (!fileManager.TextureConversionSuccessful)
-//            {
-//                MessageBox.Show("DDS conversion failed! Export canceled. Check file names and try again.", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
-//                ResetUi();
-//                return;
-//            }
-//        }
-
-//        PreviewWindow previewWindow = new(fileManager.CheckFilesToExport());
-
-//        try
-//        {
-//            if ((bool)previewWindow.ShowDialog()!)
-//            {
-//                if (previewWindow.FilesToExport.Any())
-//                {
-//                    string[] selectedFiles = previewWindow.FilesToExport;
-
-//                    bool[] exportedFileTypes = fileManager.CheckSelectedFilesFiletypes(selectedFiles);
-//                    fileManager.MoveDirectories(selectedFiles);
-
-//                    PerforceManager.SubmitMessage = previewWindow.SubmitMessage;
-//                    PerforceManager.AddFilesToPerforce(fileManager.ExportedFiles, txtOutputDirectory.Text, exportedFileTypes[0], exportedFileTypes[1]);
-//                    PerforceManager.Disconnect();
-
-//                    var confirmationWindow = new ConfirmationWindow(fileManager.ExportedFiles, previewWindow.SubmitMessage);
-//                    confirmationWindow.ShowDialog();
-
-//                    ResetUi();
-//                }
-//                else
-//                {
-//                    MessageBox.Show("No files selected to submit.", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
-//                    ResetUi();
-//                    return;
-//                }
-//            }
-//            else
-//            {
-//                MessageBox.Show("Export canceled.", "Warning", MessageBoxButton.OK, MessageBoxImage.Warning);
-//                ResetUi();
-//                return;
-//            }
-//        }
-//        catch (Win32Exception ex) when (ex.NativeErrorCode == 0x8)
-//        {
-//            MessageBox.Show("A memory error ocurred when trying to preview the files for export.", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
-//            ResetUi();
-//            return;
-//        }
-//    }
-//}
