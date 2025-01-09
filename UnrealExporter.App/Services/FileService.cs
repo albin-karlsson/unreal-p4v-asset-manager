@@ -405,7 +405,6 @@ public class FileService : IFileService
             }
         }
 
-
         return filesToExclude;
     }
 

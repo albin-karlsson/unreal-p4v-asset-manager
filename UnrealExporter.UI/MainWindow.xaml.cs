@@ -162,7 +162,7 @@ namespace UnrealExporter.UI
 
                         IsLoading = false;
 
-                        ShowSuccess($"{workspaces.Count()} Perforce workspaces retrieved!");
+                        ShowSuccess($"{workspaces.Count()} Perforce workspaces retrieved.");
                     }
                 }
                 else
@@ -258,6 +258,7 @@ namespace UnrealExporter.UI
                 if (_appConfig.ExportTextures)
                 {
                     await ProcessTextureConversion();
+                    exportedFiles = _fileService.GetExportedFiles();
                 }
 
                 PreviewWindow previewWindow = new(exportedFiles);
