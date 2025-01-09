@@ -15,7 +15,7 @@ public class FileService : IFileService
     private const string EXPORT_DIRECTORY = "C:/UnrealExport";
     private readonly string APP_DEPS = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Deps");
     private const string DDS_EXE = "_dds.exe";
-    private const string TEX_CONV_EXE = "_textConv.exe";
+    private const string TEX_CONV_EXE = "_texconv.exe";
     private const string TEX_DIAG_EXE = "_texdiag.exe";
 
     private readonly IAppConfig _appConfig;

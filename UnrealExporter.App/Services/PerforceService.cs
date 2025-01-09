@@ -120,6 +120,10 @@ public class PerforceService : IPerforceService
                 throw new ServiceException("Failed to connect to Perforce server.");
             }
         }
+        catch(P4Exception ex)
+        {
+            throw;
+        }
         catch (ServiceException ex)
         {
             throw new ServiceException(ex.Message);

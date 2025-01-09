@@ -1,6 +1,7 @@
 ﻿using Microsoft.Win32;
 using Perforce.P4;
 using System.ComponentModel;
+using System.ComponentModel.DataAnnotations;
 using System.Data;
 using System.Globalization;
 using System.IO;
@@ -76,6 +77,11 @@ namespace UnrealExporter.UI
             {
                 var validationErrors = new List<string>();
 
+                if(_perforceService.ConnectionStatus == null || _perforceService.ConnectionStatus == ConnectionStatus.Disconnected)
+                {
+                    validationErrors.Add("Not connected to Perforce.");
+                }
+
                 if (!(xboxExportMeshes.IsChecked ?? false) && !(xboxExportTextures.IsChecked ?? false))
                 {
                     validationErrors.Add("Please select to export either meshes, textures, or both.");
@@ -99,7 +105,7 @@ namespace UnrealExporter.UI
                 if (validationErrors.Any())
                 {
                     string errorMessage = string.Join(Environment.NewLine, validationErrors);
-                    throw new Exception("Validation errors: " + Environment.NewLine + errorMessage);
+                    throw new ValidationException("Validation errors: " + Environment.NewLine + errorMessage);
                 }
 
                 return true;
@@ -127,6 +133,8 @@ namespace UnrealExporter.UI
         {
             try
             {
+                SetSourceAndDestinationInputs(false);
+
                 cboxPerforceWorkspace.Items.Clear();
 
                 string trimmedUsername = txtPerforceUsername.Text.Trim();
@@ -162,7 +170,14 @@ namespace UnrealExporter.UI
                     throw new Exception("No Perforce username or password specified.");
                 }
             }
-            catch (Exception ex) {
+            catch(P4Exception ex)
+            {
+                ResetUI();
+
+                ShowError(ex.Message);
+            }
+            catch (Exception ex) 
+            {
                 ShowError(ex.Message);
             }
             finally
@@ -178,20 +193,32 @@ namespace UnrealExporter.UI
         {
             btnBrowseMeshesSourceDirectory.IsEnabled = enabled;
             btnBrowseTexturesSourceDirectory.IsEnabled = enabled;
-
             btnBrowseDestinationDirectory.IsEnabled = enabled;
 
             txtDestinationDirectory.IsEnabled = enabled;
             txtMeshesSourceDirectory.IsEnabled = enabled;
             txtTexturesSourceDirectory.IsEnabled = enabled;
+
+            if(!enabled)
+            {
+                txtDestinationDirectory.Text = "";
+                txtMeshesSourceDirectory.Text = "";
+                txtTexturesSourceDirectory.Text = "";
+            }
         }
 
         private async void btnExportAssets_Click(object sender, RoutedEventArgs e)
         {
+            bool shouldResetUI = true;
+
             try
             {
                 if (!ValidateExportRequirements())
+                {
+                    shouldResetUI = false;
                     return;
+                }
+
 
                 btnExportAssets.IsEnabled = false;
 
@@ -268,7 +295,10 @@ namespace UnrealExporter.UI
             }
             finally
             {
-                ResetUI();
+                if (shouldResetUI)
+                {
+                    ResetUI();
+                }
             }
         }
 
