@@ -74,7 +74,7 @@
 
         <Button x:Name="btnExportAssets" Grid.Row="18" Grid.Column="1" Grid.RowSpan="3" Width="210" Background="Azure" Foreground="#121212" Padding="0" HorizontalAlignment="Center" Click="btnExportAssets_Click">
             <ContentControl x:Name="btnExportAssetsContent" Content="Export assets" />
-        </Button>
+        </Button> 
         <CheckBox x:Name="xboxOverwriteFiles" ToolTip="If this is unchecked only new files will be exported" Grid.Row="18" Grid.Column="2" Content="Overwrite files" HorizontalAlignment="Left" VerticalAlignment="Center" Background="#3f3f3f" Foreground="#a19faf" />
         <CheckBox x:Name="xboxConvertTexturesToDDS" IsEnabled="False" ToolTip="Convert textures to DDS" Grid.Row="20" Grid.Column="2" Content="Convert textures to DDS" HorizontalAlignment="Left" VerticalAlignment="Center" Background="#3f3f3f" Foreground="#a19faf" />
         <CheckBox x:Name="xboxExportMeshes" ToolTip="Export meshes from Unreal" Grid.Row="19" Grid.Column="2" Content="Export meshes" HorizontalAlignment="Right" VerticalAlignment="Center" Background="#3f3f3f"  Foreground="#a19faf" />
@@ -83,11 +83,11 @@
         <Grid Grid.Row="0" Grid.RowSpan="22" Grid.Column="0" Grid.ColumnSpan="4"
       Visibility="{Binding IsLoading, Converter={StaticResource BoolToVis}}"
       Panel.ZIndex="999" Background="#80000000">
-            <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
-                <ProgressBar IsIndeterminate="True"
+            <StackPanel HorizontalAlignment="Center" Background="#121212" VerticalAlignment="Center">
+                <ProgressBar BorderBrush="#ff7e00" BorderThickness="1" Foreground="#ff4454" Background="Azure" Margin="20 20 20 0" IsIndeterminate="True"
                      Width="100" 
-                     Height="20"/>
-                <TextBlock Text="Please wait..." HorizontalAlignment="Center" Foreground="White" Margin="0,10,0,0"/>
+                     Height="20" />
+                <TextBlock Text="{Binding WaitText}" Padding="20 0 20 20" HorizontalAlignment="Center"  Foreground="Azure" Margin="0,10,0,0"/>
             </StackPanel>
         </Grid>
     </Grid>

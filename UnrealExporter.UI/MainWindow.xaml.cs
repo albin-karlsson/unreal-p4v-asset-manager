@@ -54,6 +54,17 @@ namespace UnrealExporter.UI
         }
         private bool _isLoading;
 
+        private string _loadingText = "Please wait...";
+        public string WaitText
+        {
+            get { return _loadingText; }
+            set
+            {
+                _loadingText = value;
+                OnPropertyChanged(nameof(WaitText));
+            }
+        }
+
         public event PropertyChangedEventHandler? PropertyChanged;
 
         public MainWindow(IFileService fileService, IUnrealService unrealService, IPerforceService perforceService, IAppConfig appConfig)
@@ -147,6 +158,7 @@ namespace UnrealExporter.UI
                 if (trimmedUsername.Length > 0 && trimmedPassword.Length > 0)
                 {
                     IsLoading = true;
+                    WaitText = "Logging in to Perforce...";
 
                     bool isSuccessfulLogin = await _perforceService.LogIn(trimmedUsername, trimmedPassword);
 
@@ -311,8 +323,11 @@ namespace UnrealExporter.UI
             try
             {
                 _unrealService.InitializeExport();
-                IsLoading = true; 
+                IsLoading = true;
+                WaitText = "Exporting assets from Unreal...";
+
                 var exportResult = await _unrealService.ExportAssetsAsync(filesToExcludeFromExport);
+
                 return exportResult;
             }
             catch (Exception ex)
@@ -330,6 +345,8 @@ namespace UnrealExporter.UI
             try
             {
                 IsLoading = true;
+                WaitText = "Converting textures...";
+
                 await _fileService.ConvertTextures();
 
                 if (!_fileService.TextureConversionSuccessful)
