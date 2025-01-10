@@ -410,7 +410,12 @@ public class FileService : IFileService
 
     public string[] GetExportedFiles()
     {
-        string[] filesToExport = Directory.GetFiles(EXPORT_DIRECTORY, "*.*", SearchOption.AllDirectories);
+        string[] filesToExport = Array.Empty<string>();
+
+        if (Directory.Exists(EXPORT_DIRECTORY))
+        {
+            filesToExport = Directory.GetFiles(EXPORT_DIRECTORY, "*.*", SearchOption.AllDirectories);
+        }
 
         return filesToExport;
     }

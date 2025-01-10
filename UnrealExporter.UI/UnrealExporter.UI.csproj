@@ -6,17 +6,18 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <UseWPF>true</UseWPF>
+    <PackageIcon>icon.png</PackageIcon>
   </PropertyGroup>
 
   <ItemGroup>
-    <None Remove="Images\icon.png" />
+    <None Remove="Images\icon.ico" />
     <None Remove="Images\wormhole-logo.png" />
   </ItemGroup>
 
   <ItemGroup>
-    <Content Include="Images\icon.png">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </Content>
+    <Resource Include="Images\icon.ico">
+      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
+    </Resource>
     <Content Include="Images\wormhole-logo.png">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>

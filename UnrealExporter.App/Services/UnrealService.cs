@@ -62,7 +62,7 @@ public class UnrealService : IUnrealService
 
             string directoryPath = Path.GetDirectoryName(_appConfig.UnrealEnginePath)!;
             string unrealEditorPath = Path.Combine(directoryPath, "UnrealEditor-Cmd.exe");
-            string arguments = $"\"{unrealEditorPath}\" \"{_appConfig.UnrealProjectFile}\" -stdout -FullStdOutLogOutput -ExecutePythonScript=\"{PYTHON_SCRIPT_DESTINATION_PATH} {EXPORT_DIRECTORY} ";
+            string arguments = $"\"{unrealEditorPath}\" \"{_appConfig.UnrealProjectFile}\" -ExecutePythonScript=\"{PYTHON_SCRIPT_DESTINATION_PATH} {EXPORT_DIRECTORY} ";
             arguments += _appConfig.ExportMeshes ? $"{_appConfig.MeshesSourceDirectory} " : "None ";
             arguments += _appConfig.ExportTextures ? $"{_appConfig.TexturesSourceDirectory} " : "None ";
 
@@ -81,7 +81,7 @@ public class UnrealService : IUnrealService
             {
                 FileName = "cmd.exe",
                 Arguments = $"/C \"{arguments}\"",
-                CreateNoWindow = false,
+                CreateNoWindow = true,
                 UseShellExecute = false
             };
 

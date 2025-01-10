@@ -6,8 +6,7 @@
         xmlns:local="clr-namespace:UnrealExporter.UI"
         mc:Ignorable="d"
         Title="Wormhole v2.0" Height="700" Width="500" Background="#121212" ResizeMode="NoResize"
-        Icon="/Images/icon.png">
-    <Window.Resources>
+        Icon="pack://application:,,,/Images/icon.ico">    <Window.Resources>
         <local:BoolToVis x:Key="BoolToVis" />
     </Window.Resources>
 

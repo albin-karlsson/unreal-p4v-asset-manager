@@ -108,6 +108,11 @@ namespace UnrealExporter.UI
                     validationErrors.Add("No selected Perforce workspace.");
                 }
 
+                if (string.IsNullOrEmpty(txtUnrealEnginePath.Text.Trim()))
+                {
+                    validationErrors.Add("Please add a path to Unreal Engine.");
+                }
+
                 if (!(xboxExportMeshes.IsChecked ?? false) && !(xboxExportTextures.IsChecked ?? false))
                 {
                     validationErrors.Add("Please select to export either meshes, textures, or both.");
@@ -287,7 +292,7 @@ namespace UnrealExporter.UI
 
                 if (!exportedFiles.Any())
                 {
-                    throw new ServiceException("No files found to export");
+                    throw new ServiceException($"No files found to export.{Environment.NewLine}This could be because the destination directory already contains all the files found in the source directory.");
                 }
 
                 if (_appConfig.ExportTextures && _appConfig.ConvertTextures)
