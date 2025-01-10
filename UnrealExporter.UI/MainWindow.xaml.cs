@@ -21,6 +21,7 @@ using System.Windows.Media.Imaging;
 using System.Windows.Navigation;
 using System.Windows.Shapes;
 using UnrealExporter.App.Configs;
+using UnrealExporter.App.Enums;
 using UnrealExporter.App.Exceptions;
 using UnrealExporter.App.Interfaces;
 using UnrealExporter.App.Services;
@@ -78,10 +79,12 @@ namespace UnrealExporter.UI
             this.DataContext = this;
             ResetUI();
         }
+
         protected void OnPropertyChanged(string propertyName)
         {
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
         }
+
         private bool ValidateExportRequirements()
         {
             try
@@ -276,7 +279,7 @@ namespace UnrealExporter.UI
                     exportedFiles = _fileService.GetExportedFiles();
                 }
 
-                PreviewWindow previewWindow = new(exportedFiles);
+                PreviewWindow previewWindow = new(PreviewWindowType.SelectFilesToSubmit, exportedFiles);
 
                 if ((bool)previewWindow.ShowDialog()!)
                 {
@@ -293,6 +296,14 @@ namespace UnrealExporter.UI
                     _appConfig.SubmitMessage = previewWindow.SubmitMessage!;
 
                     var (exportMeshes, exportTextures) = _fileService.GetSelectedFilesFileTypes(previewWindow.SelectedFiles!);
+
+                    if(exportMeshes != _appConfig.ExportMeshes || exportTextures != _appConfig.ExportTextures)
+                    {
+                        // The user has deselected all meshes and/or all textures
+                        // Need to change the output folder adding meshes or textures only depending on what is left
+                        // bool can only be set false not true, so no more meshes or no more textures
+                    }
+
                     _appConfig.ExportMeshes = exportMeshes;
                     _appConfig.ExportTextures = exportTextures;
 
@@ -301,7 +312,7 @@ namespace UnrealExporter.UI
                     _perforceService.AddFilesToPerforce(_fileService.ExportedFiles);
                     _perforceService.Disconnect();
 
-                    ConfirmationWindow confirmationWindow = new(_fileService.ExportedFiles, _appConfig.SubmitMessage); 
+                    PreviewWindow confirmationWindow = new(PreviewWindowType.PreviewSubmittedFiles, _fileService.ExportedFiles.ToArray());
                     confirmationWindow.Show();
                 }
             }
@@ -446,14 +457,14 @@ namespace UnrealExporter.UI
 
                         if (projectFiles.Length > 1)
                         {
-                            var selectionWindow = new SelectionWindow(projectFiles);
+                            var selectionWindow = new PreviewWindow(PreviewWindowType.SelectUnrealProject, projectFiles);
                             bool? result = selectionWindow.ShowDialog();
 
                             if (result == true)
                             {
-                                if (selectionWindow.SelectedProject != null)
+                                if (selectionWindow.SelectedFile != null)
                                 {
-                                    _selectedUnrealProjectFile = selectionWindow.SelectedProject;
+                                    _selectedUnrealProjectFile = selectionWindow.SelectedFile;
                                 }
                             }
                             else

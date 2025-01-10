@@ -71,14 +71,14 @@ public class PerforceService : IPerforceService
         {
             _workspace = workspace;
 
-            if(_repository == null)
+            if (_repository == null)
             {
                 throw new ServiceException("No Perforce repository found.");
             }
 
             Client? client = _repository!.GetClient(workspace);
 
-            if(client == null)
+            if (client == null)
             {
                 throw new ServiceException($"No client found for workspace {workspace}.");
             }
@@ -92,7 +92,7 @@ public class PerforceService : IPerforceService
         {
             throw;
         }
-        catch(ServiceException ex)
+        catch (ServiceException ex)
         {
             throw;
         }
@@ -124,7 +124,7 @@ public class PerforceService : IPerforceService
                 throw new ServiceException("Failed to connect to Perforce server.");
             }
         }
-        catch(P4Exception ex)
+        catch (P4Exception ex)
         {
             throw;
         }
@@ -132,7 +132,7 @@ public class PerforceService : IPerforceService
         {
             throw new ServiceException(ex.Message);
         }
-        catch(Exception ex)
+        catch (Exception ex)
         {
             throw new Exception(ex.Message);
         }
@@ -151,7 +151,7 @@ public class PerforceService : IPerforceService
                 _repository.Connection.Disconnect();
             }
         }
-        catch(ServiceException ex)
+        catch (ServiceException ex)
         {
             throw new ServiceException(ex.Message);
         }
@@ -165,7 +165,7 @@ public class PerforceService : IPerforceService
     {
         try
         {
-            if(WorkspacePath == null)
+            if (WorkspacePath == null)
             {
                 throw new ServiceException("No valid workspace path found.");
             }
@@ -179,11 +179,11 @@ public class PerforceService : IPerforceService
 
             return new string[0];
         }
-        catch(ServiceException ex)
+        catch (ServiceException ex)
         {
             throw new ServiceException(ex.Message);
         }
-        catch(Exception ex)
+        catch (Exception ex)
         {
             throw new Exception(ex.Message);
         }
@@ -202,7 +202,7 @@ public class PerforceService : IPerforceService
 
             _repository.Connection.Client.SyncFiles(syncOptions, null);
         }
-        catch(ServiceException ex)
+        catch (ServiceException ex)
         {
             throw new ServiceException("A Perforce related error ocurred: " + ex.Message);
         }
@@ -240,7 +240,7 @@ public class PerforceService : IPerforceService
     {
         try
         {
-            if(_repository == null)
+            if (_repository == null)
             {
                 throw new ServiceException("No Perforce repository found.");
             }
@@ -340,3 +340,4 @@ public class PerforceService : IPerforceService
         }
     }
 }
+

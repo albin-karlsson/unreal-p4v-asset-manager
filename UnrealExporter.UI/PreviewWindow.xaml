@@ -5,9 +5,17 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:UnrealExporter.UI"
         mc:Ignorable="d"
-        Title="Wormhole review" Height="500" Width="500" Background="#121212" ResizeMode="NoResize"
+        Title="Wormhole v2.0" Height="500" Width="500" Background="#121212" ResizeMode="NoResize"
         Icon="/Images/icon.png">
+    <Window.Resources>
+        <DataTemplate x:Key="CheckBoxTemplate">
+            <CheckBox IsChecked="{Binding IsSelected}" 
+                    HorizontalAlignment="Center"/>
+        </DataTemplate>
+    </Window.Resources>
     <Grid>
+
+        
         <!-- Match MainWindow's column structure -->
         <Grid.ColumnDefinitions>
             <ColumnDefinition Width="20"/>
@@ -26,7 +34,7 @@
         </Grid.RowDefinitions>
 
         <!-- Header -->
-        <Label Grid.Row="1" Grid.Column="1"
+        <Label x:Name="lblList" Grid.Row="1" Grid.Column="1"
                Content="Select files for submit" 
                Foreground="#a19faf"
                Padding="0,5"
@@ -38,27 +46,11 @@
                   MinHeight="200"
                   MaxHeight="300"
                   ScrollViewer.VerticalScrollBarVisibility="Auto" 
-                  ScrollViewer.IsDeferredScrollingEnabled="True">
-            <ListView.View>
-                <GridView>
-                    <GridViewColumn Header="Include" Width="60">
-                        <GridViewColumn.CellTemplate>
-                            <DataTemplate>
-                                <CheckBox IsChecked="{Binding IsSelected}" 
-                                        HorizontalAlignment="Center"/>
-                            </DataTemplate>
-                        </GridViewColumn.CellTemplate>
-                    </GridViewColumn>
-                    <GridViewColumn Header="File name" 
-                                  DisplayMemberBinding="{Binding Name}" Width="auto"
-                                  />
-                </GridView>
-            </ListView.View>
-        </ListView>
+                  ScrollViewer.IsDeferredScrollingEnabled="True" SelectionChanged="lstPreview_SelectionChanged"/>
 
         <!-- Message Input Section -->
         <StackPanel Grid.Row="3" Grid.Column="1" Margin="0,10">
-            <Label Content="Submit message" 
+            <Label x:Name="lblSubmitMessage" Content="Submit message" 
                    Foreground="#a19faf"
                    Padding="0,5"
                    VerticalAlignment="Bottom"/>
@@ -85,13 +77,13 @@
                     Orientation="Horizontal" 
                     HorizontalAlignment="Center"
                     Margin="0,10">
-            <Button Content="Submit" 
+            <Button x:Name="btnOK" Content="Submit" 
                     Width="100" Height="25"
                     Margin="0,0,10,0"
                     Background="#a19faf" 
                     Foreground="#121212"
-                    Click="Submit_Click"/>
-            <Button Content="Cancel" 
+                    Click="OK_Click"/>
+            <Button x:Name="btnCancel" Content="Cancel" 
                     Width="100" Height="25"
                     Margin="10,0,0,0"
                     Background="#FF7043" 
