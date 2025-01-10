@@ -10,7 +10,7 @@ namespace UnrealExporter.App.Interfaces
     {
         bool ExportMeshes { get; set; }
         bool ExportTextures { get; set; }
-        string DestinationDirectory { get; }
+        string DestinationDirectory { get; set; }
         bool ConvertTextures { get; set; }
         bool OverwriteFiles { get; set; }
         string UnrealEnginePath { get; set; }

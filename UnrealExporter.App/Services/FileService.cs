@@ -79,7 +79,7 @@ public class FileService : IFileService
     /// </summary>
     /// <param name="selectedFiles"></param>
     /// <returns>An array of bools where the first bool indicates if meshes should be exported, and the second one if textures should be exported</returns>
-    public (bool exportMeshes, bool exportTextures) GetSelectedFilesFileTypes(string[] selectedFiles)
+    public (bool exportMeshes, bool exportTextures) GetSelectedFileTypes(string[] selectedFiles)
     {
         bool selectedMeshes = selectedFiles.Any(f => Path.GetExtension(f).ToLower().Contains("fbx"));
         bool selectedTextures = selectedFiles.Any(f => Path.GetExtension(f).ToLower().Contains("dds") || Path.GetExtension(f).ToLower().Contains("png"));
